@@ -30,8 +30,8 @@ Une application e-commerce moderne, rapide et responsive conçue avec **Python (
 
 ### 1. Cloner le dépôt
 ```bash
-git clone https://github.com/Famorycollab/PROJET-GIT.git
-cd PROJET-GIT
+git clone https://github.com/Famorycollab/biwex-store.git
+cd biwex-store
 ```
 
 ### 2. Créer et activer un environnement virtuel
