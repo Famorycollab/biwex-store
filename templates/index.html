@@ -1,243 +1,504 @@
 {% extends 'base.html' %}
-{% block title %}Biwex - Électronique & High-Tech en Tunisie{% endblock %}
+{% block title %}Biwex Tunisie - N°1 de la Vente en Ligne High-Tech & Informatique{% endblock %}
+
 {% block content %}
 <div class="wrapper">
 
-  <!-- Hero Slider -->
-  <div class="hero-slider">
-    <div class="slider-track" id="sliderTrack">
-      <div class="slide slide-1">
-        <div class="slide-content">
-          <div class="slide-badge">🔥 Nouveauté 2026</div>
-          <h1>iPhone <span>15 Pro</span><br>Max</h1>
-          <p>Titane. Si résistant. Si léger. Si Pro. La caméra qui change tout.</p>
-          <a href="/?category=Smartphones" class="slide-cta">Voir les Smartphones →</a>
-        </div>
-        <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=450" class="slide-image"
-          alt="iPhone 15 Pro">
-      </div>
-      <div class="slide slide-2">
-        <div class="slide-content">
-          <div class="slide-badge">💻 Best Seller</div>
-          <h1>MacBook <span>Pro</span><br>M3</h1>
-          <p>La puissance professionnelle. Autonomie inégalée. Partout.</p>
-          <a href="/?category=Laptops" class="slide-cta">Voir les Laptops →</a>
-        </div>
-        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=450" class="slide-image"
-          alt="MacBook Pro">
-      </div>
-      <div class="slide slide-3">
-        <div class="slide-content">
-          <div class="slide-badge">🎧 Promo -20%</div>
-          <h1>Sony <span>WH-1000</span><br>XM5</h1>
-          <p>Le casque numéro 1 mondial. ANC révolutionnaire. Son de studio.</p>
-          <a href="/?category=Audio" class="slide-cta">Voir l'offre →</a>
-        </div>
-        <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=450" class="slide-image"
-          alt="Sony WH-1000XM5">
-      </div>
-    </div>
-    <button class="slider-arrow slider-prev" onclick="changeSlide(-1)">‹</button>
-    <button class="slider-arrow slider-next" onclick="changeSlide(1)">›</button>
-    <div class="slider-dots">
-      <button class="dot active" onclick="goSlide(0)"></button>
-      <button class="dot" onclick="goSlide(1)"></button>
-      <button class="dot" onclick="goSlide(2)"></button>
-    </div>
-  </div>
-
-  <!-- Promo Banners -->
-  <div class="promo-banners">
-    <a href="/?category=Smartphones" class="promo-banner promo-banner-1">
-      <div>
-        <h3>Smartphones</h3>
-        <p>Derniers flagships disponibles</p>
-      </div>
-      <i class="bi bi-phone-fill"></i>
-    </a>
-    <a href="/?category=Laptops" class="promo-banner promo-banner-2">
-      <div>
-        <h3>Laptops Pro</h3>
-        <p>Performance & mobilité</p>
-      </div>
-      <i class="bi bi-laptop"></i>
-    </a>
-    <a href="/?category=Gaming" class="promo-banner promo-banner-3">
-      <div>
-        <h3>Gaming Zone</h3>
-        <p>PS5, Xbox, PC Gaming</p>
-      </div>
-      <i class="bi bi-controller"></i>
-    </a>
-  </div>
-
-  <!-- Main layout -->
-  <div class="layout-two-col">
-
-    <!-- Sidebar Categories -->
-    <aside class="sidebar-cats">
-      <div class="sidebar-cats-header">
-        <i class="bi bi-list-ul"></i> Catégories
-      </div>
-      <ul>
-        <li>
-          <a href="/" class="{{ 'active' if not selected_category }}">
-            <i class="bi bi-grid"></i> Tous les produits
-            <span class="arrow"><i class="bi bi-chevron-right"></i></span>
-          </a>
-        </li>
-        {% for cat in categories %}
-        <li>
-          <a href="/?category={{ cat }}" class="{{ 'active' if selected_category == cat }}">
-            {% if cat == 'Smartphones' %}<i class="bi bi-phone"></i>
-            {% elif cat == 'Laptops' %}<i class="bi bi-laptop"></i>
-            {% elif cat == 'Tablettes' %}<i class="bi bi-tablet"></i>
-            {% elif cat == 'Audio' %}<i class="bi bi-headphones"></i>
-            {% elif cat == 'TV' %}<i class="bi bi-tv"></i>
-            {% elif cat == 'Gaming' %}<i class="bi bi-controller"></i>
-            {% elif cat == 'Accessoires' %}<i class="bi bi-bag"></i>
-            {% else %}<i class="bi bi-box"></i>{% endif %}
-            {{ cat }}
-            <span class="arrow"><i class="bi bi-chevron-right"></i></span>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-    </aside>
-
-    <!-- Products -->
-    <div>
-      <div class="section-title">
-        <h2>{{ selected_category if selected_category else 'Tous les produits' }}</h2>
-        <span style="font-size:13px;color:#999;font-weight:600;">{{ products|length }} produit(s) trouvé(s)</span>
-      </div>
-
-      <!-- Filter Bar -->
-      <form class="filter-bar" action="/" method="get">
-        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
-        {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+  <!-- Section Hero Style MyTek (Slider 70% + 2 Bannières Promo 30%) -->
+  <section class="mytek-hero-grid">
+    
+    <!-- Grand Slider Principal -->
+    <div class="mytek-hero-slider">
+      <div class="slider-track" id="sliderTrack">
         
-        <label>Trier par :</label>
-        <select name="sort" onchange="this.form.submit()">
-          <option value="">Pertinence</option>
-          <option value="new" {% if sort == 'new' %}selected{% endif %}>Nouveautés</option>
-          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Prix croissant</option>
-          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Prix décroissant</option>
-          <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Mieux notés</option>
-        </select>
+        <!-- Slide 1 : Smartphones -->
+        <div class="slide slide-mytek-1">
+          <div class="slide-badge-mytek">🔥 EXCLUSIVITÉ & PROMOS 2026</div>
+          <h2 class="slide-title">Spécial Smartphones Flagships</h2>
+          <p class="slide-subtitle">iPhone 15 Pro, Samsung Galaxy S24 Ultra & Xiaomi 14 Pro avec garantie officielle 1 an.</p>
+          <div class="slide-price-tag">À partir de <strong>1 199,000 DT</strong></div>
+          <a href="/?category=Smartphones" class="slide-mytek-btn">DÉCOUVRIR LES OFFRES <i class="bi bi-arrow-right-short"></i></a>
+          <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500" class="slide-float-img" alt="Smartphones Promo">
+        </div>
 
-        <label style="margin-left:auto;">Prix min :</label>
-        <input type="number" name="min_price" value="{{ request.args.get('min_price', '') }}" style="width:80px;" placeholder="0">
-        <label>max :</label>
-        <input type="number" name="max_price" value="{{ request.args.get('max_price', '') }}" style="width:80px;" placeholder="9999">
-        <button type="submit" class="btn-dark-sm" style="padding:7px 12px;"><i class="bi bi-funnel-fill"></i> Filtrer</button>
-      </form>
+        <!-- Slide 2 : Laptops & Gaming -->
+        <div class="slide slide-mytek-2">
+          <div class="slide-badge-mytek">💻 ESPACE INFORMATIQUE & GAMER</div>
+          <h2 class="slide-title">PC Portables & Ultrabooks</h2>
+          <p class="slide-subtitle">MacBook Pro M3, Dell XPS, HP Omen & Asus ROG. Puissance professionnelle et gaming sans limite.</p>
+          <div class="slide-price-tag">Jusqu'à <strong>-500 DT</strong> de remise</div>
+          <a href="/?category=Laptops" class="slide-mytek-btn">VOIR LES PC PORTABLES <i class="bi bi-arrow-right-short"></i></a>
+          <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500" class="slide-float-img" alt="PC Portables">
+        </div>
 
-      <div class="products-grid">
-        {% for p in products %}
-        <div class="product-card" id="wishlist-item-{{ p.id }}">
-          {% if current_user.is_authenticated %}
-            <button class="wishlist-btn {% if p.id in wishlist_ids %}active{% endif %}" onclick="toggleWishlist({{ p.id }}, event)" title="Ajouter aux favoris">
-              <i class="bi bi-heart-fill"></i>
-            </button>
+        <!-- Slide 3 : Audio & TV -->
+        <div class="slide slide-mytek-3">
+          <div class="slide-badge-mytek">🎧 SON & IMAGE ULTRA HD</div>
+          <h2 class="slide-title">TV 4K & Casques Sans Fil</h2>
+          <p class="slide-subtitle">Sony WH-1000XM5, AirPods Pro 2, TV Samsung QLED & LG OLED au meilleur prix de Tunisie.</p>
+          <div class="slide-price-tag">Livraison <strong>GRATUITE</strong> 24/48H</div>
+          <a href="/?category=Audio" class="slide-mytek-btn">PROFITER DES BONS PLANS <i class="bi bi-arrow-right-short"></i></a>
+          <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500" class="slide-float-img" alt="Audio & TV">
+        </div>
+
+      </div>
+
+      <!-- Contrôles du Slider -->
+      <button class="slider-arrow slider-prev" onclick="changeSlide(-1)" aria-label="Précédent"><i class="bi bi-chevron-left"></i></button>
+      <button class="slider-arrow slider-next" onclick="changeSlide(1)" aria-label="Suivant"><i class="bi bi-chevron-right"></i></button>
+      
+      <div class="slider-dots">
+        <button class="dot active" onclick="goSlide(0)" aria-label="Slide 1"></button>
+        <button class="dot" onclick="goSlide(1)" aria-label="Slide 2"></button>
+        <button class="dot" onclick="goSlide(2)" aria-label="Slide 3"></button>
+      </div>
+    </div>
+
+    <!-- 2 Bannières Promotionnelles Droite (Style MyTek) -->
+    <div class="mytek-side-banners">
+      <a href="/?category=Gaming" class="side-banner side-banner-gaming">
+        <div class="side-banner-content">
+          <span class="side-tag">ZONE GAMER</span>
+          <h3>Pack Gaming Next-Gen</h3>
+          <p>PS5, Xbox & Accessoires Pro</p>
+          <span class="side-link">Voir les promos →</span>
+        </div>
+        <i class="bi bi-controller banner-bg-icon"></i>
+      </a>
+
+      <a href="/?category=Tablettes" class="side-banner side-banner-tech">
+        <div class="side-banner-content">
+          <span class="side-tag">ARRIVAGE OFFICIEL</span>
+          <h3>iPad & Tablettes Samsung</h3>
+          <p>Productivité & divertissement</p>
+          <span class="side-link">Découvrir →</span>
+        </div>
+        <i class="bi bi-tablet banner-bg-icon"></i>
+      </a>
+    </div>
+
+  </section>
+
+  <!-- Section VENTES FLASH Style MyTek avec Compte à Rebours -->
+  {% if flash_products %}
+  <section class="flash-deals-section" id="ventes-flash">
+    <div class="flash-deals-header">
+      <div class="flash-deals-title">
+        <span class="flash-flame">⚡</span>
+        <h2>VENTES FLASH & BONS PLANS DU MOMENT</h2>
+      </div>
+      <div class="flash-countdown-wrap">
+        <span class="countdown-label">FIN DE L'OFFRE DANS :</span>
+        <div class="flash-timer" id="flashTimer">
+          <div class="timer-box"><span id="days">02</span><small>Jours</small></div>
+          <span class="timer-sep">:</span>
+          <div class="timer-box"><span id="hours">14</span><small>Heures</small></div>
+          <span class="timer-sep">:</span>
+          <div class="timer-box"><span id="mins">35</span><small>Min</small></div>
+          <span class="timer-sep">:</span>
+          <div class="timer-box"><span id="secs">48</span><small>Sec</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grille Ventes Flash -->
+    <div class="flash-products-grid">
+      {% for p in flash_products %}
+      <div class="mytek-product-card flash-card">
+        
+        <!-- Badges Promo & Remise -->
+        <div class="card-badge-top">
+          <span class="badge-promo-mytek">-{{ "%.0f"|format((p.original_price - p.price) / p.original_price * 100) }}% PROMO</span>
+          {% if p.stock > 0 %}
+          <span class="badge-stock-mytek"><i class="bi bi-check-circle-fill"></i> EN STOCK</span>
+          {% else %}
+          <span class="badge-rupture-mytek"><i class="bi bi-x-circle-fill"></i> RUPTURE</span>
           {% endif %}
-          
-          {% if p.original_price > p.price %}
-            <div class="product-badge promo">-{{ "%.0f"|format((p.original_price - p.price) / p.original_price * 100) }}%</div>
-          {% elif loop.index <= 3 and sort != 'price_asc' and sort != 'price_desc' %}
-            <div class="product-badge new">NEW</div>
-          {% endif %}
-          
-          <a href="/product/{{ p.id }}" style="text-decoration:none;">
-            <div class="product-img-wrap">
-              <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy">
-            </div>
-            <div class="product-info">
-              <div class="brand">{{ p.category }}</div>
-              <h3>{{ p.name }}</h3>
-              
-              <div style="display:flex;align-items:center;margin-bottom:8px;">
-                {% if p.rating > 0 %}
-                  <div class="stars">
-                    {% for i in range(1, 6) %}
-                      {% if i <= p.rating %}
-                        <i class="bi bi-star-fill"></i>
-                      {% elif i - 0.5 <= p.rating %}
-                        <i class="bi bi-star-half"></i>
-                      {% else %}
-                        <i class="bi bi-star"></i>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                  <span class="rating-count">({{ p.review_count }})</span>
-                {% else %}
-                  <span style="font-size:11px;color:#bbb;">Aucun avis</span>
-                {% endif %}
-              </div>
+        </div>
 
-              <div class="product-price">
-                {{ "%.2f"|format(p.price) }} <span class="currency">DT</span>
-                {% if p.original_price > p.price %}
-                  <span class="price-original">{{ "%.2f"|format(p.original_price) }}</span>
-                {% endif %}
-              </div>
+        {% if current_user.is_authenticated %}
+        <button class="wishlist-btn-mytek {% if p.id in wishlist_ids %}active{% endif %}" onclick="toggleWishlist({{ p.id }}, event)" title="Favoris">
+          <i class="bi bi-heart-fill"></i>
+        </button>
+        {% endif %}
+
+        <!-- Image Produit -->
+        <a href="/product/{{ p.id }}" class="card-img-link">
+          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-prod-img">
+        </a>
+
+        <!-- Infos Produit -->
+        <div class="card-body-mytek">
+          <div class="card-cat-brand">{{ p.category }} • Réf: BIW-{{ p.id }}</div>
+          <h3 class="card-prod-title">
+            <a href="/product/{{ p.id }}" title="{{ p.name }}">{{ p.name }}</a>
+          </h3>
+
+          <!-- Avis & Étoiles -->
+          <div class="card-rating-wrap">
+            <div class="stars-gold">
+              {% for i in range(1, 6) %}
+                {% if i <= p.rating %}<i class="bi bi-star-fill"></i>
+                {% elif i - 0.5 <= p.rating %}<i class="bi bi-star-half"></i>
+                {% else %}<i class="bi bi-star"></i>{% endif %}
+              {% endfor %}
             </div>
-          </a>
-          <div style="padding:0 12px 14px;">
-            {% if p.stock > 0 %}
-              <div style="font-size:11px;color:#16a34a;font-weight:700;margin-bottom:6px;">
-                <i class="bi bi-check-circle-fill"></i> En stock ({{ p.stock }})
-              </div>
-              <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
-                <input type="hidden" name="qty" value="1">
-                <button type="submit" class="add-cart-btn">
-                  <i class="bi bi-cart-plus-fill"></i> Ajouter au panier
-                </button>
-              </form>
-            {% else %}
-              <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:6px;">
-                <i class="bi bi-x-circle-fill"></i> Rupture de stock
-              </div>
-              <button class="add-cart-btn" disabled style="background:#ccc;cursor:not-allowed;">
-                Indisponible
-              </button>
+            <span class="rating-number">({{ p.review_count }})</span>
+          </div>
+
+          <!-- Bloc Prix Style MyTek -->
+          <div class="card-price-block">
+            <div class="price-current-mytek">{{ p.price|format_dt }}</div>
+            {% if p.original_price > p.price %}
+            <div class="price-old-wrap">
+              <span class="price-old-mytek">{{ p.original_price|format_dt }}</span>
+              <span class="price-save-mytek">Économie: {{ (p.original_price - p.price)|format_dt }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
-      {% else %}
-      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;">
-        <i class="bi bi-search" style="font-size:52px;color:#ddd;"></i>
-        <p style="color:#999;margin-top:12px;font-size:15px;">Aucun produit trouvé pour votre recherche.</p>
-        <a href="/" class="btn-dark-sm" style="margin-top:15px;display:inline-flex;">Voir tous les produits</a>
+
+        <!-- Boutons d'Action MyTek -->
+        <div class="card-actions-mytek">
+          {% if p.stock > 0 %}
+          <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
+            <input type="hidden" name="qty" value="1">
+            <button type="submit" class="btn-add-cart-mytek">
+              <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
+            </button>
+          </form>
+          
+          <!-- Commande Directe par WhatsApp -->
+          <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20immédiatement%20le%20produit%20suivant%20:%0A-%20*{{ p.name }}*%0A-%20Prix%20:%20{{ p.price|format_dt }}%0A-%20Réf%20:%20BIW-{{ p.id }}" 
+             target="_blank" 
+             class="btn-wa-direct-mytek" 
+             title="Commander par WhatsApp">
+            <i class="bi bi-whatsapp"></i> Commander par WhatsApp
+          </a>
+          {% else %}
+          <button class="btn-rupture-mytek" disabled>
+            <i class="bi bi-clock-history"></i> PRODUIT INDISPONIBLE
+          </button>
+          {% endif %}
+        </div>
+
       </div>
       {% endfor %}
     </div>
-  </div>
-</div>
+  </section>
+  {% endif %}
 
-<!-- Why Biwex -->
-<div class="why-biwex">
-  <div class="why-item">
-    <i class="bi bi-truck"></i>
-    <h4>Livraison rapide</h4>
-    <p>Partout en Tunisie sous 24-48h</p>
+  <!-- Section Rayons Populaires (Icônes Rondes MyTek) -->
+  <section class="popular-cats-section">
+    <div class="section-heading-mytek">
+      <h2><i class="bi bi-grid-3x3-gap-fill"></i> NOS RAYONS PRINCIPAUX</h2>
+      <a href="/" class="view-all-link">Voir tous les rayons →</a>
+    </div>
+    <div class="popular-cats-grid">
+      <a href="/?category=Smartphones" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-phone-fill"></i></div>
+        <span class="cat-pill-name">Smartphones</span>
+        <span class="cat-pill-count">{{ category_counts.get('Smartphones', 0) }} produits</span>
+      </a>
+      <a href="/?category=Laptops" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-laptop-fill"></i></div>
+        <span class="cat-pill-name">PC Portables</span>
+        <span class="cat-pill-count">{{ category_counts.get('Laptops', 0) }} produits</span>
+      </a>
+      <a href="/?category=Gaming" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-controller"></i></div>
+        <span class="cat-pill-name">Gaming</span>
+        <span class="cat-pill-count">{{ category_counts.get('Gaming', 0) }} produits</span>
+      </a>
+      <a href="/?category=TV" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-tv-fill"></i></div>
+        <span class="cat-pill-name">TV & Écrans</span>
+        <span class="cat-pill-count">{{ category_counts.get('TV', 0) }} produits</span>
+      </a>
+      <a href="/?category=Audio" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-headphones"></i></div>
+        <span class="cat-pill-name">Audio & Son</span>
+        <span class="cat-pill-count">{{ category_counts.get('Audio', 0) }} produits</span>
+      </a>
+      <a href="/?category=Tablettes" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-tablet-fill"></i></div>
+        <span class="cat-pill-name">Tablettes</span>
+        <span class="cat-pill-count">{{ category_counts.get('Tablettes', 0) }} produits</span>
+      </a>
+      <a href="/?category=Accessoires" class="cat-card-pill">
+        <div class="cat-pill-icon"><i class="bi bi-keyboard-fill"></i></div>
+        <span class="cat-pill-name">Accessoires</span>
+        <span class="cat-pill-count">{{ category_counts.get('Accessoires', 0) }} produits</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Disposition Principale en 2 Colonnes (Filtres MyTek Gauche + Grille Produits Droite) -->
+  <div class="main-shop-layout">
+    
+    <!-- Sidebar Filtres MyTek -->
+    <aside class="mytek-sidebar">
+      
+      <!-- Bloc Catégories -->
+      <div class="sidebar-block">
+        <div class="sidebar-block-title">
+          <i class="bi bi-list-nested"></i> RAYONS
+        </div>
+        <ul class="sidebar-cat-list">
+          <li>
+            <a href="/" class="sidebar-cat-link {% if not selected_category %}active{% endif %}">
+              <span><i class="bi bi-chevron-right"></i> Tous les produits</span>
+              <span class="count-pill">{{ products|length if not selected_category else 'All' }}</span>
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="/?category={{ cat }}" class="sidebar-cat-link {% if selected_category == cat %}active{% endif %}">
+              <span><i class="bi bi-chevron-right"></i> {{ cat }}</span>
+              <span class="count-pill">{{ category_counts.get(cat, 0) }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Bloc Filtres Dynamiques (Prix, Stock, Tri) -->
+      <div class="sidebar-block">
+        <div class="sidebar-block-title">
+          <i class="bi bi-sliders"></i> AFFINER VOTRE CHOIX
+        </div>
+        <form action="/" method="get" class="sidebar-filters-form">
+          {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+          {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+          {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+
+          <!-- Filtre Disponibilité Stock -->
+          <div class="filter-group">
+            <label class="filter-group-label">Disponibilité</label>
+            <label class="custom-checkbox-wrap">
+              <input type="checkbox" name="in_stock" value="1" {% if in_stock == '1' %}checked{% endif %} onchange="this.form.submit()">
+              <span class="checkbox-indicator"></span>
+              <span class="checkbox-text">En stock uniquement</span>
+            </label>
+          </div>
+
+          <!-- Filtre Prix (DT) -->
+          <div class="filter-group">
+            <label class="filter-group-label">Prix (en Dinars DT)</label>
+            <div class="price-inputs-row">
+              <div class="price-input-col">
+                <span class="price-input-prefix">Min</span>
+                <input type="number" name="min_price" value="{{ request.args.get('min_price', '') }}" placeholder="0" min="0">
+              </div>
+              <span class="price-sep">-</span>
+              <div class="price-input-col">
+                <span class="price-input-prefix">Max</span>
+                <input type="number" name="max_price" value="{{ request.args.get('max_price', '') }}" placeholder="7000" min="0">
+              </div>
+            </div>
+            <button type="submit" class="btn-filter-apply">
+              <i class="bi bi-funnel-fill"></i> Appliquer les filtres
+            </button>
+            {% if request.args.get('min_price') or request.args.get('max_price') or in_stock or search %}
+            <a href="{{ url_for('index', category=selected_category) }}" class="btn-filter-reset">
+              <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+            </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+
+      <!-- Bannière Publicitaire Sidebar MyTek -->
+      <div class="sidebar-promo-banner">
+        <i class="bi bi-shield-check banner-badge-icon"></i>
+        <h4>100% GARANTIE OFFICIELLE</h4>
+        <p>Tous nos équipements sont neufs, scellés et garantis constructeur de 1 à 2 ans.</p>
+        <span class="banner-badge-phone">Assistance : 54 360 846</span>
+      </div>
+
+      <!-- Showrooms Rapides -->
+      <div class="sidebar-block showrooms-mini-block">
+        <div class="sidebar-block-title">
+          <i class="bi bi-shop"></i> RETRAIT EN MAGASIN
+        </div>
+        <p class="showrooms-mini-desc">Commandez en ligne et retirez votre colis dans nos boutiques :</p>
+        <ul class="showrooms-mini-list">
+          <li>🏢 <strong>Tunis Charguia 2</strong></li>
+          <li>🏢 <strong>Ariana Ennasr 2</strong></li>
+          <li>🏢 <strong>Sousse Khezama</strong></li>
+          <li>🏢 <strong>Sfax Route Téniour</strong></li>
+        </ul>
+      </div>
+
+    </aside>
+
+    <!-- Contenu Principal : Grille Produits -->
+    <main class="mytek-catalog-content">
+      
+      <!-- Barre d'En-tête Catalogue (Titre + Tri + Compteur) -->
+      <div class="catalog-header-bar">
+        <div>
+          <h1 class="catalog-title">
+            {{ selected_category if selected_category else 'Tous nos produits High-Tech' }}
+          </h1>
+          <span class="catalog-count-info">
+            <strong>{{ products|length }}</strong> produit(s) disponible(s)
+            {% if search %} pour la recherche "<em>{{ search }}</em>"{% endif %}
+          </span>
+        </div>
+
+        <!-- Formulaire de Tri Style MyTek -->
+        <form class="sort-form-mytek" action="/" method="get">
+          {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+          {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+          {% if request.args.get('min_price') %}<input type="hidden" name="min_price" value="{{ request.args.get('min_price') }}">{% endif %}
+          {% if request.args.get('max_price') %}<input type="hidden" name="max_price" value="{{ request.args.get('max_price') }}">{% endif %}
+          {% if in_stock %}<input type="hidden" name="in_stock" value="{{ in_stock }}">{% endif %}
+          
+          <label for="sortSelect">Trier par :</label>
+          <div class="select-sort-wrapper">
+            <select name="sort" id="sortSelect" onchange="this.form.submit()">
+              <option value="" {% if not sort %}selected{% endif %}>Sélection Biwex (Pertinence)</option>
+              <option value="new" {% if sort == 'new' %}selected{% endif %}>Nouveautés</option>
+              <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Prix : du - cher au + cher</option>
+              <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Prix : du + cher au - cher</option>
+              <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Meilleures Évaluations</option>
+            </select>
+            <i class="bi bi-chevron-down sort-chevron"></i>
+          </div>
+        </form>
+      </div>
+
+      <!-- Grille Principale des Produits Style MyTek -->
+      <div class="mytek-products-grid">
+        {% for p in products %}
+        <div class="mytek-product-card" id="product-card-{{ p.id }}">
+          
+          <!-- Badges du Produit -->
+          <div class="card-badge-top">
+            {% if p.original_price > p.price %}
+              <span class="badge-promo-mytek">-{{ "%.0f"|format((p.original_price - p.price) / p.original_price * 100) }}% PROMO</span>
+            {% elif loop.index <= 4 and not sort %}
+              <span class="badge-new-mytek">NOUVEAU</span>
+            {% else %}
+              <span></span>
+            {% endif %}
+
+            {% if p.stock > 0 %}
+              <span class="badge-stock-mytek"><i class="bi bi-check-circle-fill"></i> EN STOCK</span>
+            {% else %}
+              <span class="badge-rupture-mytek"><i class="bi bi-x-circle-fill"></i> RUPTURE</span>
+            {% endif %}
+          </div>
+
+          <!-- Bouton Favoris Wishlist -->
+          {% if current_user.is_authenticated %}
+          <button class="wishlist-btn-mytek {% if p.id in wishlist_ids %}active{% endif %}" onclick="toggleWishlist({{ p.id }}, event)" title="Ajouter aux favoris">
+            <i class="bi bi-heart-fill"></i>
+          </button>
+          {% endif %}
+
+          <!-- Image avec Zoom au Survol -->
+          <a href="/product/{{ p.id }}" class="card-img-link">
+            <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-prod-img">
+          </a>
+
+          <!-- Contenu Carte -->
+          <div class="card-body-mytek">
+            <div class="card-cat-brand">{{ p.category }} • Réf: BIW-{{ p.id }}</div>
+            <h3 class="card-prod-title">
+              <a href="/product/{{ p.id }}" title="{{ p.name }}">{{ p.name }}</a>
+            </h3>
+
+            <!-- Étoiles de Notation -->
+            <div class="card-rating-wrap">
+              <div class="stars-gold">
+                {% for i in range(1, 6) %}
+                  {% if i <= p.rating %}<i class="bi bi-star-fill"></i>
+                  {% elif i - 0.5 <= p.rating %}<i class="bi bi-star-half"></i>
+                  {% else %}<i class="bi bi-star"></i>{% endif %}
+                {% endfor %}
+              </div>
+              <span class="rating-number">({{ p.review_count }})</span>
+            </div>
+
+            <!-- Prix Style MyTek -->
+            <div class="card-price-block">
+              <div class="price-current-mytek">{{ p.price|format_dt }}</div>
+              {% if p.original_price > p.price %}
+              <div class="price-old-wrap">
+                <span class="price-old-mytek">{{ p.original_price|format_dt }}</span>
+                <span class="price-save-mytek">-{{ (p.original_price - p.price)|format_dt }}</span>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Caractéristiques Résumées -->
+            <p class="card-short-desc">
+              {{ p.description[:85] }}{% if p.description|length > 85 %}...{% endif %}
+            </p>
+          </div>
+
+          <!-- Boutons Panier & WhatsApp -->
+          <div class="card-actions-mytek">
+            {% if p.stock > 0 %}
+            <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
+              <input type="hidden" name="qty" value="1">
+              <button type="submit" class="btn-add-cart-mytek">
+                <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
+              </button>
+            </form>
+            
+            <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20immédiatement%20le%20produit%20suivant%20:%0A-%20*{{ p.name }}*%0A-%20Prix%20:%20{{ p.price|format_dt }}%0A-%20Réf%20:%20BIW-{{ p.id }}" 
+               target="_blank" 
+               class="btn-wa-direct-mytek" 
+               title="Commander par WhatsApp">
+              <i class="bi bi-whatsapp"></i> Commander par WhatsApp
+            </a>
+            {% else %}
+            <button class="btn-rupture-mytek" disabled>
+              <i class="bi bi-clock-history"></i> PRODUIT INDISPONIBLE
+            </button>
+            {% endif %}
+          </div>
+
+        </div>
+        {% else %}
+        <!-- État Aucun Produit Trouvé -->
+        <div class="no-products-box">
+          <div class="no-prod-icon"><i class="bi bi-search"></i></div>
+          <h3>Aucun produit ne correspond à vos critères</h3>
+          <p>Essayez de modifier vos filtres ou effectuez une nouvelle recherche par mot-clé.</p>
+          <a href="/" class="btn-back-home"><i class="bi bi-arrow-left"></i> Voir tout le catalogue</a>
+        </div>
+        {% endfor %}
+      </div>
+
+    </main>
+
   </div>
-  <div class="why-item">
-    <i class="bi bi-patch-check-fill"></i>
-    <h4>Produits officiels</h4>
-    <p>100% authentiques et garantis</p>
-  </div>
-  <div class="why-item">
-    <i class="bi bi-arrow-repeat"></i>
-    <h4>Retour facile</h4>
-    <p>7 jours pour changer d'avis</p>
-  </div>
-  <div class="why-item">
-    <i class="bi bi-headset"></i>
-    <h4>Support 7j/7</h4>
-    <p>Experts disponibles pour vous</p>
-  </div>
-</div>
+
+  <!-- Section "NOS MARQUES OFFICIELLES" Style MyTek -->
+  <section class="brands-section-mytek">
+    <div class="section-heading-mytek">
+      <h2><i class="bi bi-award-fill"></i> NOS GRANDES MARQUES OFFICIELLES</h2>
+      <span class="sub-heading">Produits 100% certifiés avec garantie constructeur officielle</span>
+    </div>
+    <div class="brands-grid-mytek">
+      <div class="brand-item-box"><strong>APPLE</strong></div>
+      <div class="brand-item-box"><strong>SAMSUNG</strong></div>
+      <div class="brand-item-box"><strong>DELL</strong></div>
+      <div class="brand-item-box"><strong>HP</strong></div>
+      <div class="brand-item-box"><strong>ASUS</strong></div>
+      <div class="brand-item-box"><strong>LENOVO</strong></div>
+      <div class="brand-item-box"><strong>SONY</strong></div>
+      <div class="brand-item-box"><strong>XIAOMI</strong></div>
+      <div class="brand-item-box"><strong>JBL</strong></div>
+      <div class="brand-item-box"><strong>MSI</strong></div>
+      <div class="brand-item-box"><strong>LOGITECH</strong></div>
+      <div class="brand-item-box"><strong>LG</strong></div>
+    </div>
+  </section>
 
 </div>
 {% endblock %}

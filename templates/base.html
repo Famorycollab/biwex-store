@@ -4,105 +4,306 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Biwex - Électronique & High-Tech{% endblock %}</title>
+  <title>{% block title %}Biwex Tunisie - N°1 High-Tech, Informatique & Électroménager{% endblock %}</title>
+  <meta name="description" content="Achetez en ligne au meilleur prix en Tunisie : Smartphones, PC Portables, TV, Gaming et Électroménager. Livraison 24/48h partout en Tunisie, paiement à la livraison.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
-  <!-- Page Loader -->
-  <div class="page-loader">
-    <div class="loader-logo">Bi<span>wex</span></div>
-  </div>
-
-  <!-- Top Bar -->
-  <div class="top-bar">
-    🚚 Livraison gratuite dès 200 DT &nbsp;|&nbsp; 📞 54 36 08 46 &nbsp;|&nbsp; 🏪 Showrooms : Tunis · Sfax · Sousse
-    &nbsp;|&nbsp; ⏰ Lun-Sam 8h-20h
-  </div>
-
-  <!-- Main Navbar -->
-  <nav class="navbar-main">
-    <div class="navbar-inner">
-      <a href="/" class="logo">Bi<span>wex</span></a>
-      <form class="search-bar" action="/" method="get">
-      <input type="text" name="search" placeholder="Rechercher un produit, une marque..." value="{{ request.args.get('search','') }}">
-      <button type="submit"><i class="bi bi-search"></i></button>
-    </form>
-    
-    <button class="hamburger" onclick="toggleMobileMenu()">
-      <span></span><span></span><span></span>
-    </button>
-    
-    <div class="nav-actions">
-        {% if current_user.is_authenticated %}
-        <a href="/profile" class="nav-btn"><i class="bi bi-person-circle"></i><span>Profil</span></a>
-        {% if current_user.is_admin %}
-          <a href="/admin" class="nav-btn" style="color:var(--red)"><i class="bi bi-gear-fill"></i><span>Admin</span></a>
+  <!-- Top Bar Style MyTek -->
+  <div class="top-bar-mytek">
+    <div class="top-bar-inner">
+      <div class="top-bar-left">
+        <span><i class="bi bi-telephone-fill"></i> Service Commercial : <strong>36 360 000</strong> / <strong>54 360 846</strong></span>
+        <span class="sep">|</span>
+        <span><i class="bi bi-geo-alt-fill"></i> Showrooms : <em>Tunis · Ariana · Sousse · Sfax · Nabeul</em></span>
+        <span class="sep">|</span>
+        <span><i class="bi bi-truck"></i> Livraison express 24/48H partout en Tunisie</span>
+      </div>
+      <div class="top-bar-right">
+        {% if current_user.is_authenticated and current_user.is_admin %}
+          <a href="/admin" class="top-link admin-pill"><i class="bi bi-shield-lock-fill"></i> Admin Dashboard</a>
         {% endif %}
-        <a href="/wishlist" class="nav-btn"><i class="bi bi-heart"></i><span>Favoris</span></a>
-        <a href="/logout" class="nav-btn"><i class="bi bi-box-arrow-right"></i><span>Sortir</span></a>
-        {% else %}
-        <a href="/login" class="nav-btn"><i class="bi bi-person"></i><span>Connexion</span></a>
-        <a href="/register" class="nav-btn"><i class="bi bi-person-plus"></i><span>Inscription</span></a>
-        {% endif %}
-        <a href="/cart" class="nav-btn cart-btn">
-          <i class="bi bi-cart3"></i>
-          <span>Panier</span>
-          {% set cart_data = session.get('cart', {}) %}
-          {% set cart_count = cart_data.values() | sum %}
-          {% if cart_count > 0 %}
-          <span class="cart-badge">{{ cart_count }}</span>
-          {% endif %}
-        </a>
+        <a href="/profile" class="top-link"><i class="bi bi-box-seam"></i> Suivi de commande</a>
+        <a href="/wishlist" class="top-link"><i class="bi bi-heart"></i> Favoris</a>
+        <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20j'ai%20besoin%20d'aide" target="_blank" class="top-link wa-top"><i class="bi bi-whatsapp"></i> Aide WhatsApp</a>
+      </div>
     </div>
   </div>
-</nav>
 
-<!-- Mobile Menu -->
-<div class="mobile-menu" id="mobileMenu">
-  <ul>
-    <li><a href="/"><i class="bi bi-grid-fill"></i> Tous les produits</a></li>
-    <li><a href="/?category=Smartphones"><i class="bi bi-phone-fill"></i> Smartphones</a></li>
-    <li><a href="/?category=Laptops"><i class="bi bi-laptop"></i> Laptops</a></li>
-    <li><a href="/?category=Tablettes"><i class="bi bi-tablet"></i> Tablettes</a></li>
-    {% if current_user.is_authenticated %}
-      <li><a href="/profile"><i class="bi bi-person"></i> Mon Profil</a></li>
-      <li><a href="/wishlist"><i class="bi bi-heart"></i> Mes Favoris</a></li>
-      <li><a href="/logout"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
-    {% else %}
-      <li><a href="/login"><i class="bi bi-box-arrow-in-right"></i> Connexion</a></li>
-    {% endif %}
-  </ul>
-</div>
+  <!-- Header Principal Style MyTek -->
+  <header class="header-main">
+    <div class="header-inner">
+      
+      <!-- Logo Biwex / MyTek Style -->
+      <a href="/" class="mytek-logo">
+        <div class="logo-text">
+          <span class="logo-red">BI</span><span class="logo-dark">WEX</span>
+          <span class="logo-badge">.tn</span>
+        </div>
+        <span class="logo-sub">N°1 HIGH-TECH EN TUNISIE</span>
+      </a>
 
-  <!-- Category Navbar -->
-  <nav class="cat-navbar">
-    <div class="cat-navbar-inner">
-      <ul>
-        <li><a href="/" class="{{ 'active' if not request.args.get('category') }}"><i class="bi bi-grid-fill"></i>
-            Tous</a></li>
-        <li><a href="/?category=Smartphones" class="{{ 'active' if request.args.get('category')=='Smartphones' }}"><i
-              class="bi bi-phone-fill"></i> Smartphones</a></li>
-        <li><a href="/?category=Laptops" class="{{ 'active' if request.args.get('category')=='Laptops' }}"><i
-              class="bi bi-laptop"></i> Laptops</a></li>
-        <li><a href="/?category=Tablettes" class="{{ 'active' if request.args.get('category')=='Tablettes' }}"><i
-              class="bi bi-tablet"></i> Tablettes</a></li>
-        <li><a href="/?category=Audio" class="{{ 'active' if request.args.get('category')=='Audio' }}"><i
-              class="bi bi-headphones"></i> Audio</a></li>
-        <li><a href="/?category=TV" class="{{ 'active' if request.args.get('category')=='TV' }}"><i
-              class="bi bi-tv-fill"></i> TV</a></li>
-        <li><a href="/?category=Gaming" class="{{ 'active' if request.args.get('category')=='Gaming' }}"><i
-              class="bi bi-controller"></i> Gaming</a></li>
-        <li><a href="/?category=Accessoires" class="{{ 'active' if request.args.get('category')=='Accessoires' }}"><i
-              class="bi bi-bag-fill"></i> Accessoires</a></li>
+      <!-- Mega Search Bar MyTek avec sélecteur de catégorie -->
+      <div class="search-container">
+        <form class="mytek-search-form" action="/" method="get">
+          <div class="search-category-select">
+            <select name="category">
+              <option value="">Tous les rayons</option>
+              {% for cat in global_categories %}
+              <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+            <i class="bi bi-chevron-down select-arrow"></i>
+          </div>
+          <div class="search-input-wrapper">
+            <input type="text" name="search" placeholder="Rechercher un produit, une marque, une référence..." value="{{ request.args.get('search','') }}" autocomplete="off">
+          </div>
+          <button type="submit" class="search-submit-btn" aria-label="Rechercher">
+            <i class="bi bi-search"></i>
+          </button>
+        </form>
+
+        <!-- Mots-clés populaires sous la recherche -->
+        <div class="search-keywords">
+          <span class="kw-title">Populaires :</span>
+          <a href="/?search=iPhone">iPhone 15</a>
+          <a href="/?search=Samsung">Samsung S24</a>
+          <a href="/?search=MacBook">MacBook</a>
+          <a href="/?category=Gaming">PC Gamer</a>
+          <a href="/?search=PlayStation">PS5</a>
+          <a href="/?category=TV">TV 4K</a>
+        </div>
+      </div>
+
+      <!-- Actions Utilisateur -->
+      <div class="header-actions">
+        
+        <!-- Compte Client -->
+        {% if current_user.is_authenticated %}
+        <div class="header-action-item user-dropdown-wrap">
+          <a href="/profile" class="action-btn">
+            <div class="action-icon"><i class="bi bi-person-circle"></i></div>
+            <div class="action-text">
+              <span class="small-text">Bonjour,</span>
+              <span class="bold-text">{{ current_user.username[:12] }}</span>
+            </div>
+          </a>
+          <div class="user-dropdown-menu">
+            <a href="/profile"><i class="bi bi-person"></i> Mon Profil & Commandes</a>
+            <a href="/wishlist"><i class="bi bi-heart"></i> Ma Liste d'envies</a>
+            {% if current_user.is_admin %}
+              <a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau d'administration</a>
+            {% endif %}
+            <hr>
+            <a href="/logout" class="logout-link"><i class="bi bi-box-arrow-right"></i> Se déconnecter</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="header-action-item">
+          <a href="/login" class="action-btn">
+            <div class="action-icon"><i class="bi bi-person"></i></div>
+            <div class="action-text">
+              <span class="small-text">Bonjour,</span>
+              <span class="bold-text">Connexion</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Favoris -->
+        <a href="/wishlist" class="header-action-item action-btn wishlist-action" title="Favoris">
+          <div class="action-icon">
+            <i class="bi bi-heart"></i>
+          </div>
+          <div class="action-text desktop-only">
+            <span class="small-text">Mes</span>
+            <span class="bold-text">Favoris</span>
+          </div>
+        </a>
+
+        <!-- Panier MyTek avec Total en DT -->
+        <a href="/cart" class="mytek-cart-pill" title="Voir le panier">
+          <div class="cart-pill-icon">
+            <i class="bi bi-cart3"></i>
+            <span class="cart-count-badge" id="cartBadge">{{ global_cart_count }}</span>
+          </div>
+          <div class="cart-pill-info">
+            <span class="cart-pill-label">Mon Panier</span>
+            <span class="cart-pill-total" id="cartTotalHeader">{{ global_cart_total|format_dt }}</span>
+          </div>
+        </a>
+
+        <!-- Bouton Menu Mobile Hamburger -->
+        <button class="mobile-toggle-btn" onclick="toggleMobileNav()" aria-label="Menu">
+          <i class="bi bi-list"></i>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Barre de Navigation Rayons Style MyTek (Dark Charcoal & Red) -->
+  <nav class="nav-mytek">
+    <div class="nav-mytek-inner">
+      
+      <!-- Bouton "TOUS NOS RAYONS" Mega Menu -->
+      <div class="all-departments-btn" id="allDeptsBtn">
+        <i class="bi bi-grid-fill"></i>
+        <span>TOUS NOS RAYONS</span>
+        <i class="bi bi-chevron-down dropdown-icon"></i>
+
+        <!-- Mega Menu Flottant -->
+        <div class="mega-dropdown-menu" id="megaMenu">
+          <div class="mega-menu-list">
+            <a href="/" class="mega-item {% if not request.args.get('category') %}active{% endif %}">
+              <i class="bi bi-grid"></i> Tous nos produits
+            </a>
+            <a href="/?category=Smartphones" class="mega-item {% if request.args.get('category')=='Smartphones' %}active{% endif %}">
+              <i class="bi bi-phone"></i> Smartphones & Téléphonie
+            </a>
+            <a href="/?category=Laptops" class="mega-item {% if request.args.get('category')=='Laptops' %}active{% endif %}">
+              <i class="bi bi-laptop"></i> PC Portables & Bureautique
+            </a>
+            <a href="/?category=Gaming" class="mega-item {% if request.args.get('category')=='Gaming' %}active{% endif %}">
+              <i class="bi bi-controller"></i> Univers Gaming & Consoles
+            </a>
+            <a href="/?category=TV" class="mega-item {% if request.args.get('category')=='TV' %}active{% endif %}">
+              <i class="bi bi-tv"></i> Téléviseurs & TV 4K
+            </a>
+            <a href="/?category=Audio" class="mega-item {% if request.args.get('category')=='Audio' %}active{% endif %}">
+              <i class="bi bi-headphones"></i> Audio, Casques & Enceintes
+            </a>
+            <a href="/?category=Tablettes" class="mega-item {% if request.args.get('category')=='Tablettes' %}active{% endif %}">
+              <i class="bi bi-tablet"></i> Tablettes Tactiles & iPad
+            </a>
+            <a href="/?category=Accessoires" class="mega-item {% if request.args.get('category')=='Accessoires' %}active{% endif %}">
+              <i class="bi bi-keyboard"></i> Périphériques & Accessoires
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liens Horizontaux Rayons Principaux -->
+      <ul class="nav-links-list">
+        <li><a href="/?category=Laptops" class="{{ 'active' if request.args.get('category')=='Laptops' }}"><i class="bi bi-laptop"></i> Informatique</a></li>
+        <li><a href="/?category=Smartphones" class="{{ 'active' if request.args.get('category')=='Smartphones' }}"><i class="bi bi-phone"></i> Téléphonie</a></li>
+        <li><a href="/?category=Gaming" class="{{ 'active' if request.args.get('category')=='Gaming' }}"><i class="bi bi-controller"></i> Gaming</a></li>
+        <li><a href="/?category=TV" class="{{ 'active' if request.args.get('category')=='TV' }}"><i class="bi bi-tv"></i> TV & Son</a></li>
+        <li><a href="/?category=Tablettes" class="{{ 'active' if request.args.get('category')=='Tablettes' }}"><i class="bi bi-tablet"></i> Tablettes</a></li>
+        <li><a href="/?category=Audio" class="{{ 'active' if request.args.get('category')=='Audio' }}"><i class="bi bi-headphones"></i> Audio</a></li>
+        <li><a href="/?category=Accessoires" class="{{ 'active' if request.args.get('category')=='Accessoires' }}"><i class="bi bi-bag"></i> Accessoires</a></li>
+        <li class="flash-link-item">
+          <a href="/#ventes-flash" class="flash-link">
+            <span class="fire-icon">🔥</span> VENTES FLASH & PROMOS
+            <span class="promo-pill">PROMO</span>
+          </a>
+        </li>
       </ul>
+
+      <!-- Contact Express WhatsApp à droite -->
+      <div class="nav-right-contact">
+        <a href="https://wa.me/{{ WHATSAPP_NUMBER }}" target="_blank" class="nav-wa-btn">
+          <i class="bi bi-whatsapp"></i>
+          <span>Commande WhatsApp : <strong>54 360 846</strong></span>
+        </a>
+      </div>
+
     </div>
   </nav>
 
+  <!-- Mobile Drawer Menu -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-header">
+      <div class="logo-text">
+        <span class="logo-red">BI</span><span class="logo-dark">WEX</span>
+      </div>
+      <button class="drawer-close" onclick="toggleMobileNav()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="drawer-content">
+      <div class="drawer-search">
+        <form action="/" method="get">
+          <input type="text" name="search" placeholder="Rechercher...">
+          <button type="submit"><i class="bi bi-search"></i></button>
+        </form>
+      </div>
+      <div class="drawer-section-title">NOS RAYONS</div>
+      <ul class="drawer-links">
+        <li><a href="/"><i class="bi bi-grid-fill"></i> Tous nos produits</a></li>
+        <li><a href="/?category=Smartphones"><i class="bi bi-phone"></i> Smartphones</a></li>
+        <li><a href="/?category=Laptops"><i class="bi bi-laptop"></i> Laptops & PC</a></li>
+        <li><a href="/?category=Gaming"><i class="bi bi-controller"></i> Gaming Zone</a></li>
+        <li><a href="/?category=TV"><i class="bi bi-tv"></i> TV & Écrans</a></li>
+        <li><a href="/?category=Audio"><i class="bi bi-headphones"></i> Casques & Audio</a></li>
+        <li><a href="/?category=Tablettes"><i class="bi bi-tablet"></i> Tablettes</a></li>
+        <li><a href="/?category=Accessoires"><i class="bi bi-bag"></i> Accessoires</a></li>
+      </ul>
+      <div class="drawer-section-title">MON COMPTE</div>
+      <ul class="drawer-links">
+        {% if current_user.is_authenticated %}
+          <li><a href="/profile"><i class="bi bi-person"></i> Mon Profil ({{ current_user.username }})</a></li>
+          <li><a href="/wishlist"><i class="bi bi-heart"></i> Mes Favoris</a></li>
+          {% if current_user.is_admin %}
+            <li><a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau Admin</a></li>
+          {% endif %}
+          <li><a href="/logout"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
+        {% else %}
+          <li><a href="/login"><i class="bi bi-box-arrow-in-right"></i> Connexion</a></li>
+          <li><a href="/register"><i class="bi bi-person-plus"></i> Créer un compte</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleMobileNav()"></div>
+
+  <!-- Reassurance Bar Style MyTek (Les Avantages Biwex) -->
+  <div class="reassurance-bar">
+    <div class="reassurance-inner">
+      <div class="reassurance-item">
+        <div class="r-icon"><i class="bi bi-truck"></i></div>
+        <div class="r-text">
+          <strong>Livraison sur toute la Tunisie</strong>
+          <span>Express 24/48h à domicile</span>
+        </div>
+      </div>
+      <div class="reassurance-item">
+        <div class="r-icon"><i class="bi bi-cash-coin"></i></div>
+        <div class="r-text">
+          <strong>Paiement à la livraison</strong>
+          <span>Réglez en espèces à réception</span>
+        </div>
+      </div>
+      <div class="reassurance-item">
+        <div class="r-icon"><i class="bi bi-shield-check"></i></div>
+        <div class="r-text">
+          <strong>Garantie Officielle</strong>
+          <span>Produits 100% neufs & certifiés</span>
+        </div>
+      </div>
+      <div class="reassurance-item">
+        <div class="r-icon"><i class="bi bi-headset"></i></div>
+        <div class="r-text">
+          <strong>Service Client 6j/7</strong>
+          <span>Conseils au 54 360 846</span>
+        </div>
+      </div>
+      <div class="reassurance-item">
+        <div class="r-icon"><i class="bi bi-shop"></i></div>
+        <div class="r-text">
+          <strong>Retrait en Magasin</strong>
+          <span>Disponible dans nos showrooms</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Flash Messages -->
-  <div class="wrapper" style="margin-top:10px;">
+  <div class="wrapper" style="margin-top:12px;">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
     <div class="alert alert-{{ cat }}">
@@ -115,152 +316,142 @@
     {% endwith %}
   </div>
 
-  {% block content %}{% endblock %}
+  <!-- Contenu Principal -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-<div class="wrapper">
-  <!-- Newsletter Section -->
-  <div class="newsletter-section">
-    <h3>Restez connecté avec Biwex !</h3>
-    <p>Abonnez-vous à notre newsletter pour recevoir nos meilleures offres, promos exclusives et nouveautés en avant-première.</p>
-    <form action="/newsletter" method="post" class="newsletter-form">
-      <input type="email" name="email" placeholder="Votre adresse email..." required>
-      <button type="submit">S'abonner maintenant</button>
-    </form>
-  </div>
-</div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-grid">
-      <div>
-        <div class="footer-logo">Bi<span>wex</span></div>
-        <p class="footer-desc">Votre spécialiste en high-tech et électronique en Tunisie. Qualité garantie, service
-          irréprochable depuis 2010.</p>
-        <div style="margin-top:15px;">
-          <span class="pay-badge">💳 CB</span>
-          <span class="pay-badge">🏦 Virement</span>
-          <span class="pay-badge">💵 Cash</span>
-          <span class="pay-badge">📱 TPE</span>
+  <!-- Newsletter Style MyTek -->
+  <div class="newsletter-strip">
+    <div class="newsletter-inner">
+      <div class="newsletter-left">
+        <i class="bi bi-envelope-paper-heart-fill"></i>
+        <div>
+          <h3>Inscrivez-vous à la Newsletter Biwex !</h3>
+          <p>Recevez nos offres exclusives, codes promos et nouveautés en avant-première.</p>
         </div>
       </div>
-      <div>
-        <h4>Service Client</h4>
-        <ul>
-          <li>📞 54 36 08 46 </li>
-          <li>✉️ tourefamory5@gmail.com</li>
-          <li>💬 Chat en direct</li>
-          <li>🕐 Lun-Sam 8h-20h</li>
-        </ul>
-      </div>
-      <div>
-        <h4>Informations</h4>
-        <ul>
-          <li><a href="#">À propos de Biwex</a></li>
-          <li><a href="#">Modalités de livraison</a></li>
-          <li><a href="#">Retours & Remboursements</a></li>
-          <li><a href="#">Garantie produits</a></li>
-          <li><a href="#">Mentions légales</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Nos Showrooms</h4>
-        <ul>
-          <li>📍 Tunis — Centre Urbain Nord</li>
-          <li>📍 Sfax — Av. de l'Armée</li>
-          <li>📍 Sousse — Rte de Tunis</li>
-          <li>📍 Monastir — Centre ville</li>
-        </ul>
-      </div>
+      <form action="/newsletter" method="post" class="newsletter-form-mytek">
+        <input type="email" name="email" placeholder="Entrez votre adresse email..." required>
+        <button type="submit">S'ABONNER <i class="bi bi-arrow-right"></i></button>
+      </form>
     </div>
-    <div class="footer-bottom">
-      <span>© 2026 Biwex.tn — Tous droits réservés</span>
-      <span>Conçu avec ❤️ en Tunisie</span>
+  </div>
+
+  <!-- Mega Footer Style MyTek -->
+  <footer class="footer-mytek">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        
+        <!-- Colonne 1 : À Propos -->
+        <div class="footer-col">
+          <div class="footer-logo">
+            <span class="logo-red">BI</span><span class="logo-white">WEX</span><span class="logo-badge">.tn</span>
+          </div>
+          <p class="footer-about">
+            Votre référence n°1 pour la vente en ligne de matériel informatique, smartphones, gaming, TV et multimédia en Tunisie avec les meilleurs prix garantis.
+          </p>
+          <div class="footer-contact-item">
+            <i class="bi bi-telephone-fill"></i>
+            <div>
+              <span>Service Client :</span>
+              <strong>(+216) 36 360 000 / 54 360 846</strong>
+            </div>
+          </div>
+          <div class="footer-contact-item">
+            <i class="bi bi-envelope-fill"></i>
+            <div>
+              <span>Email commercial :</span>
+              <strong>contact@biwex.tn</strong>
+            </div>
+          </div>
+          <div class="footer-contact-item">
+            <i class="bi bi-clock-fill"></i>
+            <div>
+              <span>Horaires d'ouverture :</span>
+              <strong>Du Lundi au Samedi : 08h00 - 19h30</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne 2 : Nos Showrooms -->
+        <div class="footer-col">
+          <h4><i class="bi bi-geo-alt"></i> NOS MAGASINS EN TUNISIE</h4>
+          <ul class="footer-links">
+            <li><strong>📍 Tunis (La Charguia 2)</strong> : 14 Rue des Entrepreneurs</li>
+            <li><strong>📍 Tunis (Centre-Ville)</strong> : Avenue Habib Bourguiba</li>
+            <li><strong>📍 Ariana (Ennasr 2)</strong> : Avenue Hédi Nouira</li>
+            <li><strong>📍 Sousse (Khezama)</strong> : Boulevard 14 Janvier</li>
+            <li><strong>📍 Sfax (Route Téniour)</strong> : Km 1.5, Ceinture</li>
+            <li><strong>📍 Nabeul</strong> : Avenue Habib Thameur</li>
+          </ul>
+        </div>
+
+        <!-- Colonne 3 : Service Client & SAV -->
+        <div class="footer-col">
+          <h4><i class="bi bi-shield-check"></i> SERVICE CLIENT & AIDE</h4>
+          <ul class="footer-links">
+            <li><a href="/profile"><i class="bi bi-chevron-right"></i> Suivre ma commande</a></li>
+            <li><a href="/"><i class="bi bi-chevron-right"></i> Modalités de livraison (24-48h)</a></li>
+            <li><a href="/"><i class="bi bi-chevron-right"></i> Paiement à la livraison & Facilités</a></li>
+            <li><a href="/"><i class="bi bi-chevron-right"></i> Garanties officielles constructeurs</a></li>
+            <li><a href="/"><i class="bi bi-chevron-right"></i> Service Après-Vente (SAV)</a></li>
+            <li><a href="/"><i class="bi bi-chevron-right"></i> Conditions Générales de Vente (CGV)</a></li>
+          </ul>
+        </div>
+
+        <!-- Colonne 4 : Modes de Paiement & Confiance -->
+        <div class="footer-col">
+          <h4><i class="bi bi-credit-card"></i> PAIEMENT & SÉCURITÉ</h4>
+          <p style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:14px;">
+            Réglez vos achats en toute confiance avec nos options flexibles :
+          </p>
+          <div class="payment-methods-grid">
+            <span class="pay-badge-mytek"><i class="bi bi-cash-stack"></i> Cash à la livraison</span>
+            <span class="pay-badge-mytek"><i class="bi bi-credit-card-2-front-fill"></i> Carte Bancaire</span>
+            <span class="pay-badge-mytek"><i class="bi bi-bank"></i> Virement Bancaire</span>
+            <span class="pay-badge-mytek"><i class="bi bi-receipt"></i> Chèque certifié</span>
+          </div>
+          <div style="margin-top:16px;">
+            <a href="https://wa.me/{{ WHATSAPP_NUMBER }}" target="_blank" class="footer-whatsapp-pill">
+              <i class="bi bi-whatsapp"></i> Commander directement par WhatsApp
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <div class="footer-bottom-copy">
+          © 2026 <strong>Biwex Store</strong> (biwex.tn). Tous droits réservés. Conçu dans les standards officiels de la vente en ligne en Tunisie.
+        </div>
+        <div class="footer-badges">
+          <span class="badge-item"><i class="bi bi-shield-fill-check"></i> 100% Sécurisé</span>
+          <span class="badge-item"><i class="bi bi-patch-check-fill"></i> Produits Garantis</span>
+          <span class="badge-item"><i class="bi bi-lightning-charge-fill"></i> Expédition 24/48H</span>
+        </div>
+      </div>
     </div>
   </footer>
 
+  <!-- Bouton WhatsApp Flottant Style MyTek -->
+  <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20ou%20avoir%20des%20renseignements" 
+     class="floating-wa-btn" 
+     target="_blank" 
+     aria-label="Contacter sur WhatsApp"
+     title="Discuter avec nous sur WhatsApp">
+    <div class="wa-bubble-tip">Besoin d'aide ? <strong>Écrivez-nous !</strong></div>
+    <div class="wa-icon-circle">
+      <i class="bi bi-whatsapp"></i>
+    </div>
+  </a>
+
+  <!-- Bouton Retour Haut -->
+  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Retour en haut">
+    <i class="bi bi-arrow-up"></i>
+  </button>
+
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script>
-function toggleMobileMenu() {
-  document.getElementById('mobileMenu').classList.toggle('open');
-}
-
-// AJAX Add to Cart
-document.addEventListener('submit', function(e) {
-  if (e.target && e.target.classList.contains('add-to-cart-form')) {
-    e.preventDefault();
-    const form = e.target;
-    fetch(form.action, {
-      method: 'POST',
-      body: new FormData(form),
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === 'ok') {
-        const badge = document.querySelector('.cart-badge');
-        if (badge) badge.textContent = data.count;
-        else {
-          const cartBtn = document.querySelector('.cart-btn');
-          const span = document.createElement('span');
-          span.className = 'cart-badge';
-          span.textContent = data.count;
-          cartBtn.appendChild(span);
-        }
-        showToast('Produit ajouté au panier ! 🛒', 'success');
-      }
-    });
-  }
-});
-
-// AJAX Toggle Wishlist
-function toggleWishlist(productId, event) {
-  event.preventDefault();
-  event.stopPropagation();
-  fetch(`/wishlist/toggle/${productId}`, { method: 'POST' })
-  .then(r => {
-    if(r.redirected) { window.location.href = r.url; return; }
-    return r.json();
-  })
-  .then(data => {
-    if (!data) return;
-    const btn = document.querySelector(`#wishlist-item-${productId} .wishlist-btn`);
-    if(data.status === 'added') {
-      btn.classList.add('active');
-      showToast('Produit ajouté aux favoris ❤️', 'success');
-    } else {
-      btn.classList.remove('active');
-      // If we are on the wishlist page, remove the card entirely
-      if (window.location.pathname === '/wishlist') {
-        const card = document.getElementById(`wishlist-item-${productId}`);
-        if(card) {
-          card.style.opacity = '0';
-          setTimeout(() => card.remove(), 300);
-        }
-      }
-      showToast('Produit retiré des favoris', 'info');
-    }
-  });
-}
-
-function showToast(message, type='info') {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-  }
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<i class="bi bi-info-circle-fill"></i> ${message}`;
-  if(type === 'success') toast.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${message}`;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.animation = 'slideInRight 0.35s ease reverse forwards';
-    setTimeout(() => toast.remove(), 350);
-  }, 3000);
-}
-</script>
 </body>
-
 </html>

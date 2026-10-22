@@ -16,12 +16,12 @@
       {% for item in order.items %}
       <div class="order-summary-row">
         <span>{{ item.quantity }}x {{ item.product.name }}</span>
-        <span>{{ "%.2f"|format(item.price * item.quantity) }} DT</span>
+        <span>{{ (item.price * item.quantity)|format_dt }}</span>
       </div>
       {% endfor %}
       <div class="order-summary-row" style="margin-top:8px; padding-top:12px; border-top:1px solid #eee;">
         <span style="font-weight:800;">Total de la commande</span>
-        <span style="font-weight:800;color:var(--red);">{{ "%.2f"|format(order.total) }} DT</span>
+        <span style="font-weight:800;color:var(--mytek-red);">{{ order.total|format_dt }}</span>
       </div>
     </div>
 

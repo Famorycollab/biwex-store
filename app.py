@@ -38,6 +38,36 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+@app.template_filter('format_dt')
+def format_dt(value):
+    try:
+        val = float(value)
+        # Format style MyTek : 1 299,000 DT
+        formatted = f"{val:,.3f}".replace(',', ' ').replace('.', ',')
+        return f"{formatted} DT"
+    except (ValueError, TypeError):
+        return f"{value} DT"
+
+@app.context_processor
+def inject_global_vars():
+    cats = db.session.query(Product.category).distinct().all()
+    categories = [c[0] for c in cats if c[0]]
+    cart = session.get('cart', {})
+    cart_count = 0
+    cart_total = 0.0
+    if isinstance(cart, dict):
+        for pid, qty in cart.items():
+            p = Product.query.get(int(pid))
+            if p:
+                cart_count += qty
+                cart_total += p.price * qty
+    return {
+        'global_categories': categories,
+        'global_cart_count': cart_count,
+        'global_cart_total': cart_total,
+        'WHATSAPP_NUMBER': WHATSAPP_NUMBER
+    }
+
 def seed_products():
     products = [
         Product(name='iPhone 15 Pro', price=3299.00, original_price=3599.00, description='Puce A17 Pro, écran Super Retina XDR 6.1", caméra 48MP, titane naturel. La révolution pro.', category='Smartphones', stock=20, image='https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400', rating=4.8, review_count=124),
@@ -94,16 +124,22 @@ def index():
     sort = request.args.get('sort', '')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
+    in_stock = request.args.get('in_stock', '')
+    selected_brand = request.args.get('brand', '')
 
     query = Product.query
     if category:
         query = query.filter_by(category=category)
     if search:
         query = query.filter(Product.name.ilike(f'%{search}%'))
+    if selected_brand:
+        query = query.filter(Product.name.ilike(f'%{selected_brand}%'))
     if min_price is not None:
         query = query.filter(Product.price >= min_price)
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
+    if in_stock == '1':
+        query = query.filter(Product.stock > 0)
 
     if sort == 'price_asc':
         query = query.order_by(Product.price.asc())
@@ -113,10 +149,23 @@ def index():
         query = query.order_by(Product.rating.desc())
     elif sort == 'new':
         query = query.order_by(Product.id.desc())
+    else:
+        query = query.order_by(Product.rating.desc(), Product.id.asc())
 
     products = query.all()
-    categories = db.session.query(Product.category).distinct().all()
-    categories = [c[0] for c in categories]
+
+    # Category counts
+    all_prods = Product.query.all()
+    category_counts = {}
+    for p in all_prods:
+        if p.category:
+            category_counts[p.category] = category_counts.get(p.category, 0) + 1
+
+    categories = list(category_counts.keys())
+
+    # Ventes Flash (produits avec remise)
+    flash_products = [p for p in all_prods if p.original_price and p.original_price > p.price]
+    flash_products.sort(key=lambda x: (x.original_price - x.price), reverse=True)
 
     # Wishlist ids for current user
     wishlist_ids = []
@@ -124,7 +173,10 @@ def index():
         wishlist_ids = [w.product_id for w in Wishlist.query.filter_by(user_id=current_user.id).all()]
 
     return render_template('index.html', products=products, categories=categories,
+                           category_counts=category_counts,
+                           flash_products=flash_products[:6],
                            selected_category=category, search=search, sort=sort,
+                           in_stock=in_stock, selected_brand=selected_brand,
                            wishlist_ids=wishlist_ids)
 
 @app.route('/product/<int:id>')

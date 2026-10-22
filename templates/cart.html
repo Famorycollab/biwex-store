@@ -1,20 +1,23 @@
 {% extends 'base.html' %}
-{% block title %}Mon Panier - Biwex{% endblock %}
+{% block title %}Mon Panier d'Achat - Biwex Tunisie{% endblock %}
+
 {% block content %}
-<div class="wrapper" style="padding-top:20px;padding-bottom:40px;">
+<div class="wrapper py-3">
 
-  <div class="breadcrumb">
-    <a href="/">Accueil</a> <span>›</span>
-    <span style="color:#333;font-weight:600;">Mon Panier</span>
-  </div>
+  <nav class="mytek-breadcrumb">
+    <a href="/"><i class="bi bi-house-door-fill"></i> Accueil</a>
+    <span class="bc-sep"><i class="bi bi-chevron-right"></i></span>
+    <span class="bc-current">Mon Panier d'Achat</span>
+  </nav>
 
-  <div class="section-title">
-    <h2><i class="bi bi-cart3"></i> Mon Panier</h2>
-    {% if items %}<span style="font-size:13px;color:#999;">{{ items|length }} article(s)</span>{% endif %}
+  <div class="section-heading-mytek" style="margin-top:10px;">
+    <h2><i class="bi bi-cart3"></i> MON PANIER D'ACHAT {% if items %}({{ items|length }} articles){% endif %}</h2>
   </div>
 
   {% if items %}
   <div class="cart-wrapper">
+    
+    <!-- Tableau des Articles -->
     <div>
       <form action="/cart/update" method="post">
         <div class="cart-table-wrap">
@@ -22,10 +25,10 @@
             <thead>
               <tr>
                 <th>Produit</th>
-                <th>Prix unitaire</th>
-                <th>Quantité</th>
+                <th>Prix Unitaire</th>
+                <th style="text-align:center;">Quantité</th>
                 <th>Sous-total</th>
-                <th></th>
+                <th style="text-align:center;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -33,29 +36,34 @@
               <tr>
                 <td>
                   <div style="display:flex;align-items:center;gap:14px;">
-                    <img src="{{ item.product.image }}" width="65" height="65"
-                         style="object-fit:contain;border-radius:6px;border:1px solid #f0f0f0;" alt="{{ item.product.name }}">
+                    <img src="{{ item.product.image }}" width="70" height="70"
+                         style="object-fit:contain;border-radius:6px;border:1px solid #f0f0f0;background:#fff;" alt="{{ item.product.name }}">
                     <div>
                       <a href="/product/{{ item.product.id }}"
-                         style="font-size:14px;font-weight:700;color:var(--dark);text-decoration:none;">
+                         style="font-size:13.5px;font-weight:800;color:var(--mytek-dark);text-decoration:none;display:block;">
                         {{ item.product.name }}
                       </a>
-                      <div style="font-size:11px;color:#aaa;margin-top:2px;">{{ item.product.category }}</div>
+                      <div style="font-size:11px;color:var(--mytek-muted);margin-top:2px;">
+                        {{ item.product.category }} • Réf: BIW-{{ item.product.id }}
+                      </div>
+                      <span class="badge-stock-mytek" style="margin-top:4px;"><i class="bi bi-check-circle-fill"></i> En stock</span>
                     </div>
                   </div>
                 </td>
-                <td style="font-weight:700;color:var(--red);">{{ "%.2f"|format(item.product.price) }} DT</td>
-                <td>
+                <td style="font-weight:800;color:var(--mytek-red);font-size:15px;white-space:nowrap;">
+                  {{ item.product.price|format_dt }}
+                </td>
+                <td style="text-align:center;">
                   <input type="number" name="qty_{{ item.product.id }}"
                          value="{{ item.qty }}" min="1" max="{{ item.product.stock }}"
                          class="qty-input-cart">
-                  <div style="font-size:10px;color:#888;margin-top:2px;">Stock : {{ item.product.stock }}</div>
+                  <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Max : {{ item.product.stock }}</div>
                 </td>
-                <td style="font-weight:800;font-size:15px;color:var(--dark);">
-                  {{ "%.2f"|format(item.subtotal) }} DT
+                <td style="font-weight:900;font-size:16px;color:var(--mytek-dark);white-space:nowrap;">
+                  {{ item.subtotal|format_dt }}
                 </td>
-                <td>
-                  <a href="/cart/remove/{{ item.product.id }}" class="btn-remove" title="Supprimer">
+                <td style="text-align:center;">
+                  <a href="/cart/remove/{{ item.product.id }}" class="btn-remove" title="Supprimer cet article">
                     <i class="bi bi-trash3-fill"></i>
                   </a>
                 </td>
@@ -64,53 +72,70 @@
             </tbody>
           </table>
         </div>
-        <div style="margin-top:12px;display:flex;gap:10px;">
-          <button type="submit" class="btn-outline">
-            <i class="bi bi-arrow-repeat"></i> Mettre à jour
-          </button>
-          <a href="/" class="btn-dark-sm">
+
+        <div style="margin-top:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <a href="/" class="btn-outline">
             <i class="bi bi-arrow-left"></i> Continuer mes achats
           </a>
+          <button type="submit" class="btn-outline" style="background:#f8fafc;">
+            <i class="bi bi-arrow-repeat"></i> Mettre à jour le panier
+          </button>
         </div>
       </form>
     </div>
 
-    <!-- Summary -->
+    <!-- Récapitulatif Style MyTek -->
     <div class="cart-summary">
-      <h3><i class="bi bi-receipt"></i> Récapitulatif</h3>
-      <div style="margin-bottom:12px;">
+      <h3><i class="bi bi-receipt"></i> RÉCAPITULATIF COMMANDE</h3>
+      
+      <div style="margin-bottom:14px;">
         {% for item in items %}
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f5f5f5;">
-          <span style="color:#666;">{{ item.product.name }} <strong>x{{ item.qty }}</strong></span>
-          <span style="font-weight:700;">{{ "%.2f"|format(item.subtotal) }} DT</span>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--mytek-border-light);">
+          <span style="color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ item.product.name }} (x{{ item.qty }})
+          </span>
+          <span style="font-weight:700;color:var(--mytek-dark);">{{ item.subtotal|format_dt }}</span>
         </div>
         {% endfor %}
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;color:#16a34a;font-weight:700;">
-        <span><i class="bi bi-truck"></i> Livraison</span>
-        <span>GRATUITE</span>
+
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;color:var(--mytek-green);font-weight:800;">
+        <span><i class="bi bi-truck"></i> Livraison à domicile</span>
+        <span>GRATUITE (24/48H)</span>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:2px solid var(--red);margin-top:8px;">
-        <span style="font-size:15px;font-weight:800;">Total TTC</span>
-        <span class="cart-total">{{ "%.2f"|format(total) }} DT</span>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:2px solid var(--mytek-red);margin-top:10px;">
+        <span style="font-size:16px;font-weight:900;color:var(--mytek-dark);">TOTAL TTC</span>
+        <span style="font-size:24px;font-weight:900;color:var(--mytek-red);">{{ total|format_dt }}</span>
       </div>
-      <a href="/checkout" class="btn-primary" style="margin-top:14px;display:flex;text-decoration:none;">
-        <i class="bi bi-lock-fill"></i> Commander maintenant
+
+      <a href="/checkout" class="btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">
+        <i class="bi bi-lock-fill"></i> VALIDER MA COMMANDE
       </a>
-      <div style="text-align:center;margin-top:12px;">
-        <span style="font-size:11px;color:#999;"><i class="bi bi-shield-lock"></i> Paiement 100% sécurisé</span>
+
+      <!-- Commande Directe WhatsApp -->
+      <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20valider%20mon%20panier%20d'un%20montant%20de%20*{{ total|format_dt }}*%20directement%20avec%20vous." 
+         target="_blank" 
+         class="btn-wa-direct-mytek" 
+         style="margin-top:10px;padding:11px;font-size:13px;">
+        <i class="bi bi-whatsapp"></i> Commander directement par WhatsApp
+      </a>
+
+      <div style="margin-top:18px;background:#f8fafc;border-radius:6px;padding:12px;font-size:11.5px;color:var(--mytek-muted);line-height:1.6;">
+        <div><i class="bi bi-shield-check" style="color:var(--mytek-red);"></i> <strong>Paiement sécurisé</strong> à la livraison en espèces</div>
+        <div style="margin-top:4px;"><i class="bi bi-patch-check" style="color:var(--mytek-green);"></i> <strong>Garantie officielle</strong> constructeur 1 An</div>
       </div>
     </div>
+
   </div>
 
   {% else %}
-  <div style="text-align:center;padding:80px 20px;background:#fff;border-radius:10px;border:1px solid var(--gray-border);">
-    <i class="bi bi-cart-x" style="font-size:60px;color:#ddd;"></i>
-    <h3 style="margin:16px 0 8px;color:#999;font-size:18px;">Votre panier est vide</h3>
-    <p style="color:#bbb;font-size:14px;margin-bottom:24px;">Découvrez nos produits et ajoutez-en à votre panier.</p>
-    <a href="/" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:13px 35px;">
-      <i class="bi bi-arrow-left"></i> Découvrir nos produits
-    </a>
+  <!-- Panier Vide -->
+  <div class="no-products-box" style="margin:40px 0;">
+    <div class="no-prod-icon"><i class="bi bi-cart-x"></i></div>
+    <h3>Votre panier d'achat est actuellement vide</h3>
+    <p>Découvrez notre vaste sélection d'équipements High-Tech et profitez de nos promotions exceptionnelles !</p>
+    <a href="/" class="btn-back-home"><i class="bi bi-arrow-left"></i> Découvrir les produits</a>
   </div>
   {% endif %}
 

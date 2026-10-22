@@ -1,219 +1,368 @@
 {% extends 'base.html' %}
-{% block title %}{{ product.name }} - Biwex{% endblock %}
+{% block title %}{{ product.name }} - Meilleur Prix en Tunisie | Biwex{% endblock %}
+
 {% block content %}
 <div class="wrapper py-3">
 
-  <!-- Breadcrumb -->
-  <div class="breadcrumb">
-    <a href="/">Accueil</a>
-    <span>›</span>
+  <!-- Fil d'Ariane Style MyTek -->
+  <nav class="mytek-breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><i class="bi bi-house-door-fill"></i> Accueil</a>
+    <span class="bc-sep"><i class="bi bi-chevron-right"></i></span>
     <a href="/?category={{ product.category }}">{{ product.category }}</a>
-    <span>›</span>
-    <span style="color:#333;font-weight:600;">{{ product.name }}</span>
-  </div>
+    <span class="bc-sep"><i class="bi bi-chevron-right"></i></span>
+    <span class="bc-current">{{ product.name }}</span>
+  </nav>
 
-  <!-- Product Detail -->
-  <div class="product-detail-card">
-    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:40px;">
-      <div>
-        <img src="{{ product.image }}" class="detail-img" alt="{{ product.name }}">
-      </div>
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <div style="font-size:11px;color:#aaa;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">
-              {{ product.category }}
-            </div>
-            <h1 style="font-size:26px;font-weight:900;color:var(--dark);margin-bottom:8px;line-height:1.2;">
-              {{ product.name }}
-            </h1>
-            <div style="display:flex;align-items:center;margin-bottom:16px;">
-              {% if product.rating > 0 %}
-                <div class="stars-lg">
-                  {% for i in range(1, 6) %}
-                    {% if i <= product.rating %}<i class="bi bi-star-fill"></i>
-                    {% elif i - 0.5 <= product.rating %}<i class="bi bi-star-half"></i>
-                    {% else %}<i class="bi bi-star"></i>{% endif %}
-                  {% endfor %}
-                </div>
-                <span style="color:#666;font-size:14px;margin-left:8px;font-weight:600;">{{ product.rating }} ({{ product.review_count }} avis)</span>
-              {% else %}
-                <span style="font-size:13px;color:#bbb;">Aucun avis pour le moment</span>
-              {% endif %}
-            </div>
-          </div>
-          {% if current_user.is_authenticated %}
-            <button class="wishlist-btn {% if in_wishlist %}active{% endif %}" onclick="toggleWishlist({{ product.id }}, event)" style="position:relative;top:0;right:0;width:40px;height:40px;font-size:18px;" title="Ajouter aux favoris">
-              <i class="bi bi-heart-fill"></i>
-            </button>
-          {% endif %}
-        </div>
-
-        <p style="font-size:14px;color:#666;line-height:1.8;margin-bottom:20px;">
-          {{ product.description }}
-        </p>
-
-        <div style="background:#fff8f8;border:1px solid #ffd0d0;border-radius:8px;padding:16px;margin-bottom:20px;">
-          <div class="detail-price">
-            {{ "%.2f"|format(product.price) }} <span style="font-size:18px;">DT</span>
+  <!-- Fiche Produit Principale Style MyTek -->
+  <div class="mytek-detail-card">
+    <div class="detail-columns-grid">
+      
+      <!-- Colonne Image -->
+      <div class="detail-gallery-col">
+        <div class="detail-img-wrapper">
+          <img src="{{ product.image }}" class="detail-main-img" alt="{{ product.name }}">
+          
+          <!-- Badges sur Image -->
+          <div class="detail-img-badges">
             {% if product.original_price > product.price %}
-              <span class="price-original" style="font-size:18px;">{{ "%.2f"|format(product.original_price) }}</span>
-              <span class="discount-pct" style="font-size:14px;">-{{ "%.0f"|format((product.original_price - product.price) / product.original_price * 100) }}%</span>
+            <span class="badge-promo-mytek">-{{ "%.0f"|format((product.original_price - product.price) / product.original_price * 100) }}% PROMO</span>
+            {% endif %}
+            {% if product.stock > 0 %}
+            <span class="badge-stock-mytek"><i class="bi bi-check-circle-fill"></i> EN STOCK</span>
+            {% else %}
+            <span class="badge-rupture-mytek"><i class="bi bi-x-circle-fill"></i> RUPTURE</span>
             {% endif %}
           </div>
-          <div style="font-size:12px;color:#999;margin-top:4px;">TTC · Livraison offerte</div>
         </div>
 
-        <div style="margin-bottom:16px;">
-          {% if product.stock > 0 %}
-            <span class="detail-stock-ok"><i class="bi bi-check-circle-fill"></i> En stock — {{ product.stock }} disponible(s)</span>
-          {% else %}
-            <span class="detail-stock-no"><i class="bi bi-x-circle-fill"></i> Rupture de stock</span>
-          {% endif %}
-        </div>
-
-        {% if product.stock > 0 %}
-        <form action="/cart/add/{{ product.id }}" method="post">
-          <div class="qty-wrap">
-            <label style="font-size:13px;font-weight:700;color:#555;">Quantité :</label>
-            <input type="number" name="qty" value="1" min="1" max="{{ product.stock }}">
-          </div>
-          <button type="submit" class="detail-add-btn">
-            <i class="bi bi-cart-plus-fill"></i> Ajouter au panier
-          </button>
-        </form>
-        {% endif %}
-
-        <div style="display:flex;gap:20px;margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f0;">
-          <div style="text-align:center;flex:1;">
-            <i class="bi bi-truck" style="font-size:22px;color:var(--red);"></i>
-            <p style="font-size:11px;color:#666;margin-top:4px;font-weight:600;">Livraison<br>gratuite</p>
-          </div>
-          <div style="text-align:center;flex:1;">
-            <i class="bi bi-shield-check" style="font-size:22px;color:var(--red);"></i>
-            <p style="font-size:11px;color:#666;margin-top:4px;font-weight:600;">Garantie<br>officielle</p>
-          </div>
-          <div style="text-align:center;flex:1;">
-            <i class="bi bi-arrow-repeat" style="font-size:22px;color:var(--red);"></i>
-            <p style="font-size:11px;color:#666;margin-top:4px;font-weight:600;">Retour<br>7 jours</p>
-          </div>
-          <div style="text-align:center;flex:1;">
-            <i class="bi bi-award" style="font-size:22px;color:var(--red);"></i>
-            <p style="font-size:11px;color:#666;margin-top:4px;font-weight:600;">100%<br>Authentique</p>
-          </div>
+        <div class="detail-warranty-strip">
+          <i class="bi bi-patch-check-fill"></i>
+          <span>Produit 100% Officiel & Neuf · Garantie Constructeur 1 An</span>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Reviews Section -->
-  <div style="margin-top:40px; background:#fff; border-radius:10px; border:1px solid var(--gray-border); padding:30px;">
-    <h3 style="font-size:20px; font-weight:800; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid var(--red);">
-      <i class="bi bi-chat-left-text-fill" style="color:var(--red);"></i> Avis des clients
-    </h3>
-    
-    <div style="display:grid; grid-template-columns:1fr 2fr; gap:30px;">
-      <div>
-        {% if product.review_count > 0 %}
-          <div style="font-size:48px; font-weight:900; color:var(--dark); line-height:1;">{{ product.rating }}</div>
-          <div class="stars-lg" style="margin:10px 0;">
+      <!-- Colonne Informations & Achat -->
+      <div class="detail-info-col">
+        
+        <!-- En-tête : Référence & Titre -->
+        <div class="detail-meta-top">
+          <span class="detail-ref">Réf : <strong>BIW-{{ product.id }}</strong></span>
+          <span class="detail-brand-badge">{{ product.category }}</span>
+        </div>
+
+        <h1 class="detail-title">{{ product.name }}</h1>
+
+        <!-- Étoiles & Avis -->
+        <div class="detail-rating-row">
+          <div class="stars-gold">
             {% for i in range(1, 6) %}
               {% if i <= product.rating %}<i class="bi bi-star-fill"></i>
               {% elif i - 0.5 <= product.rating %}<i class="bi bi-star-half"></i>
               {% else %}<i class="bi bi-star"></i>{% endif %}
             {% endfor %}
           </div>
-          <p style="font-size:13px; color:#666;">Basé sur {{ product.review_count }} avis</p>
-        {% else %}
-          <p style="color:#666; font-size:14px;">Aucun avis pour le moment.</p>
-        {% endif %}
-        
-        {% if current_user.is_authenticated %}
-          {% if not user_reviewed %}
-            <div style="margin-top:20px; padding-top:20px; border-top:1px solid #eee;">
-              <h4 style="font-size:14px; font-weight:700; margin-bottom:10px;">Donner votre avis</h4>
-              <form action="/product/{{ product.id }}/review" method="post">
-                <div style="margin-bottom:10px;">
-                  <select name="rating" style="padding:8px; border-radius:5px; border:1px solid #ccc; font-family:'Cairo'; outline:none;">
-                    <option value="5">⭐⭐⭐⭐⭐ Parfait</option>
-                    <option value="4">⭐⭐⭐⭐ Très bien</option>
-                    <option value="3">⭐⭐⭐ Bien</option>
-                    <option value="2">⭐⭐ Moyen</option>
-                    <option value="1">⭐ Décevant</option>
-                  </select>
-                </div>
-                <textarea name="comment" placeholder="Votre commentaire (optionnel)" style="width:100%; padding:10px; border-radius:5px; border:1px solid #ccc; font-family:'Cairo'; outline:none; resize:vertical; min-height:80px; margin-bottom:10px;"></textarea>
-                <button type="submit" class="btn-dark-sm"><i class="bi bi-send-fill"></i> Publier</button>
-              </form>
+          <span class="detail-rating-score"><strong>{{ product.rating }}</strong> / 5</span>
+          <span class="detail-rating-count">({{ product.review_count }} avis clients certifiés)</span>
+        </div>
+
+        <!-- Description Courte -->
+        <p class="detail-desc-summary">{{ product.description }}</p>
+
+        <!-- Bloc Prix Style MyTek -->
+        <div class="detail-price-box-mytek">
+          <div class="detail-price-row">
+            <span class="detail-price-current">{{ product.price|format_dt }}</span>
+            {% if product.original_price > product.price %}
+            <div class="detail-price-old-wrap">
+              <span class="detail-price-old">{{ product.original_price|format_dt }}</span>
+              <span class="detail-price-save">Économisez {{ (product.original_price - product.price)|format_dt }}</span>
             </div>
-          {% else %}
-            <div style="margin-top:20px; padding:12px; background:#f0fdf4; color:#15803d; border-radius:6px; font-size:13px; font-weight:600;">
-              <i class="bi bi-check-circle-fill"></i> Vous avez déjà donné votre avis sur ce produit.
-            </div>
-          {% endif %}
-        {% else %}
-          <div style="margin-top:20px; padding-top:20px; border-top:1px solid #eee;">
-            <p style="font-size:13px; color:#666;">Connectez-vous pour laisser un avis.</p>
-            <a href="/login?next=/product/{{ product.id }}" class="btn-outline" style="margin-top:10px; padding:6px 14px;">Se connecter</a>
-          </div>
-        {% endif %}
-      </div>
-      
-      <div>
-        {% for review in reviews %}
-          <div style="padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid #f5f5f5;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-              <strong style="font-size:14px; color:var(--dark);">{{ review.user.username }}</strong>
-              <span style="font-size:12px; color:#999;">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
-            </div>
-            <div class="stars" style="margin-bottom:8px;">
-              {% for i in range(1, 6) %}
-                {% if i <= review.rating %}<i class="bi bi-star-fill"></i>
-                {% else %}<i class="bi bi-star"></i>{% endif %}
-              {% endfor %}
-            </div>
-            {% if review.comment %}
-              <p style="font-size:13px; color:#555; line-height:1.6;">{{ review.comment }}</p>
             {% endif %}
           </div>
-        {% endfor %}
+          <div class="detail-price-ttc">Prix TTC · TVA incluse · Paiement à la livraison</div>
+        </div>
+
+        <!-- Statut Stock & Disponibilité -->
+        <div class="detail-stock-status">
+          {% if product.stock > 0 %}
+          <div class="stock-ok-indicator">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>En Stock dans nos magasins</strong>
+              <span>Expédition immédiate sous 24 à 48h partout en Tunisie</span>
+            </div>
+          </div>
+          {% else %}
+          <div class="stock-no-indicator">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>
+              <strong>Produit temporairement indisponible</strong>
+              <span>Contactez notre service commercial pour réserver la prochaine livraison</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Actions d'Achat : Panier & WhatsApp -->
+        {% if product.stock > 0 %}
+        <form action="/cart/add/{{ product.id }}" method="post" class="detail-order-form">
+          <div class="detail-qty-control">
+            <label for="prodQty">Quantité :</label>
+            <div class="qty-stepper">
+              <button type="button" class="btn-step" onclick="adjustQty(-1)">-</button>
+              <input type="number" id="prodQty" name="qty" value="1" min="1" max="{{ product.stock }}">
+              <button type="button" class="btn-step" onclick="adjustQty(1)">+</button>
+            </div>
+          </div>
+
+          <div class="detail-cta-group">
+            <button type="submit" class="btn-detail-add-cart">
+              <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
+            </button>
+
+            <!-- Bouton Commande Directe WhatsApp -->
+            <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20immédiatement%20:%0A-%20*{{ product.name }}*%0A-%20Prix%20:%20{{ product.price|format_dt }}%0A-%20Réf%20:%20BIW-{{ product.id }}" 
+               target="_blank" 
+               class="btn-detail-wa-order">
+              <i class="bi bi-whatsapp"></i> COMMANDER EN 1 CLIC SUR WHATSAPP
+            </a>
+          </div>
+        </form>
+        {% endif %}
+
+        <!-- Reassurance Produit Style MyTek -->
+        <div class="detail-reassurance-grid">
+          <div class="dr-item">
+            <i class="bi bi-truck"></i>
+            <div>
+              <strong>Livraison 24/48H</strong>
+              <span>Partout en Tunisie</span>
+            </div>
+          </div>
+          <div class="dr-item">
+            <i class="bi bi-cash-stack"></i>
+            <div>
+              <strong>Paiement à la réception</strong>
+              <span>En espèces ou chèque</span>
+            </div>
+          </div>
+          <div class="dr-item">
+            <i class="bi bi-shield-check"></i>
+            <div>
+              <strong>Garantie Officielle</strong>
+              <span>SAV agréé constructeur</span>
+            </div>
+          </div>
+          <div class="dr-item">
+            <i class="bi bi-shop"></i>
+            <div>
+              <strong>Retrait Boutique</strong>
+              <span>Tunis, Sousse, Sfax</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Fiche Technique / Spécifications Détaillées (Style MyTek) -->
+  <div class="mytek-specs-card">
+    <div class="specs-nav-tabs">
+      <button class="specs-tab-btn active" onclick="switchTab('specs')"><i class="bi bi-cpu"></i> FICHE TECHNIQUE</button>
+      <button class="specs-tab-btn" onclick="switchTab('reviews')"><i class="bi bi-chat-left-dots"></i> AVIS CLIENTS ({{ product.review_count }})</button>
+    </div>
+
+    <!-- Contenu Onglet Fiche Technique -->
+    <div id="tab-specs" class="specs-tab-content active">
+      <h3 class="specs-table-title">Caractéristiques Techniques Détaillées</h3>
+      <table class="specs-table-mytek">
+        <tbody>
+          <tr>
+            <th>Désignation</th>
+            <td>{{ product.name }}</td>
+          </tr>
+          <tr>
+            <th>Référence</th>
+            <td>BIW-{{ product.id }}</td>
+          </tr>
+          <tr>
+            <th>Rayon / Catégorie</th>
+            <td>{{ product.category }}</td>
+          </tr>
+          <tr>
+            <th>État du produit</th>
+            <td>100% Neuf scellé en boîte d'origine</td>
+          </tr>
+          <tr>
+            <th>Garantie</th>
+            <td>1 An officielle constructeur en Tunisie</td>
+          </tr>
+          <tr>
+            <th>Description & Spécifications</th>
+            <td>{{ product.description }}</td>
+          </tr>
+          <tr>
+            <th>Disponibilité</th>
+            <td>{{ 'En stock immédiat' if product.stock > 0 else 'Sur commande' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Contenu Onglet Avis Clients -->
+    <div id="tab-reviews" class="specs-tab-content">
+      <div class="reviews-section-layout">
+        
+        <!-- Score global -->
+        <div class="reviews-summary-card">
+          <div class="big-rating-number">{{ product.rating }}</div>
+          <div class="stars-gold-lg">
+            {% for i in range(1, 6) %}
+              {% if i <= product.rating %}<i class="bi bi-star-fill"></i>
+              {% elif i - 0.5 <= product.rating %}<i class="bi bi-star-half"></i>
+              {% else %}<i class="bi bi-star"></i>{% endif %}
+            {% endfor %}
+          </div>
+          <p class="reviews-count-txt">Basé sur {{ product.review_count }} avis vérifiés</p>
+
+          {% if current_user.is_authenticated and not user_reviewed %}
+          <div class="add-review-box">
+            <h4>Donner votre avis sur ce produit</h4>
+            <form action="/product/{{ product.id }}/review" method="post">
+              <div class="form-group-review">
+                <label>Note globale :</label>
+                <select name="rating" class="review-select">
+                  <option value="5">⭐⭐⭐⭐⭐ 5/5 - Excellent</option>
+                  <option value="4">⭐⭐⭐⭐ 4/5 - Très bien</option>
+                  <option value="3">⭐⭐⭐ 3/5 - Bien</option>
+                  <option value="2">⭐⭐ 2/5 - Moyen</option>
+                  <option value="1">⭐ 1/5 - Décevant</option>
+                </select>
+              </div>
+              <div class="form-group-review">
+                <label>Votre commentaire :</label>
+                <textarea name="comment" placeholder="Partagez votre expérience avec ce produit..." rows="3" required></textarea>
+              </div>
+              <button type="submit" class="btn-submit-review">Publier mon avis</button>
+            </form>
+          </div>
+          {% elif current_user.is_authenticated and user_reviewed %}
+          <div class="user-already-reviewed">
+            <i class="bi bi-check-circle-fill"></i> Merci ! Votre avis a bien été enregistré.
+          </div>
+          {% else %}
+          <div class="login-to-review">
+            <a href="/login" class="btn-login-review"><i class="bi bi-lock-fill"></i> Connectez-vous pour laisser un avis</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Liste des Avis -->
+        <div class="reviews-list-col">
+          {% if reviews %}
+            {% for r in reviews %}
+            <div class="review-item-card">
+              <div class="review-item-header">
+                <div>
+                  <strong>{{ r.user.username }}</strong>
+                  <span class="verified-buyer-badge"><i class="bi bi-patch-check-fill"></i> Achat vérifié</span>
+                </div>
+                <div class="stars-gold">
+                  {% for i in range(1, 6) %}
+                    {% if i <= r.rating %}<i class="bi bi-star-fill"></i>
+                    {% else %}<i class="bi bi-star"></i>{% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              {% if r.comment %}
+              <p class="review-comment-txt">{{ r.comment }}</p>
+              {% endif %}
+              <div class="review-date-txt">{{ r.created_at.strftime('%d/%m/%Y à %H:%M') }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="no-reviews-box">
+            <i class="bi bi-chat-square-text"></i>
+            <p>Soyez le premier à donner votre avis sur ce produit !</p>
+          </div>
+          {% endif %}
+        </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Related Products -->
+  <!-- Produits Similaires Style MyTek -->
   {% if related %}
-  <div style="margin-top:35px;">
-    <div class="section-title">
-      <h2>Produits similaires</h2>
-      <a href="/?category={{ product.category }}">Voir tout →</a>
+  <section class="related-products-section">
+    <div class="section-heading-mytek">
+      <h2><i class="bi bi-arrow-repeat"></i> VOUS AIMEREZ AUSSI DANS LE MÊME RAYON</h2>
     </div>
-    <div class="products-grid">
+    <div class="mytek-products-grid">
       {% for p in related %}
-      <div class="product-card">
-        <a href="/product/{{ p.id }}" style="text-decoration:none;">
-          <div class="product-img-wrap">
-            <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy">
-          </div>
-          <div class="product-info">
-            <div class="brand">{{ p.category }}</div>
-            <h3>{{ p.name }}</h3>
-            <div class="product-price">{{ "%.2f"|format(p.price) }} <span class="currency">DT</span></div>
-          </div>
+      <div class="mytek-product-card">
+        <div class="card-badge-top">
+          {% if p.original_price > p.price %}
+          <span class="badge-promo-mytek">-{{ "%.0f"|format((p.original_price - p.price) / p.original_price * 100) }}% PROMO</span>
+          {% else %}
+          <span></span>
+          {% endif %}
+          <span class="badge-stock-mytek"><i class="bi bi-check-circle-fill"></i> EN STOCK</span>
+        </div>
+        <a href="/product/{{ p.id }}" class="card-img-link">
+          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-prod-img">
         </a>
-        <div style="padding:0 12px 14px;">
-          <form action="/cart/add/{{ p.id }}" method="post">
+        <div class="card-body-mytek">
+          <div class="card-cat-brand">{{ p.category }} • Réf: BIW-{{ p.id }}</div>
+          <h3 class="card-prod-title">
+            <a href="/product/{{ p.id }}">{{ p.name }}</a>
+          </h3>
+          <div class="card-price-block">
+            <div class="price-current-mytek">{{ p.price|format_dt }}</div>
+            {% if p.original_price > p.price %}
+            <span class="price-old-mytek">{{ p.original_price|format_dt }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-actions-mytek">
+          <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
             <input type="hidden" name="qty" value="1">
-            <button type="submit" class="add-cart-btn">
-              <i class="bi bi-cart-plus-fill"></i> Ajouter
+            <button type="submit" class="btn-add-cart-mytek">
+              <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
             </button>
           </form>
         </div>
       </div>
       {% endfor %}
     </div>
-  </div>
+  </section>
   {% endif %}
 
 </div>
+
+<script>
+  function adjustQty(delta) {
+    const input = document.getElementById('prodQty');
+    if (!input) return;
+    let val = parseInt(input.value) || 1;
+    let max = parseInt(input.getAttribute('max')) || 99;
+    val = Math.max(1, Math.min(val + delta, max));
+    input.value = val;
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.specs-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.specs-tab-content').forEach(c => c.classList.remove('active'));
+    
+    if (tabId === 'specs') {
+      document.querySelector('.specs-tab-btn:nth-child(1)').classList.add('active');
+      document.getElementById('tab-specs').classList.add('active');
+    } else {
+      document.querySelector('.specs-tab-btn:nth-child(2)').classList.add('active');
+      document.getElementById('tab-reviews').classList.add('active');
+    }
+  }
+</script>
 {% endblock %}
