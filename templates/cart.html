@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Mon Panier - Biwex{% endblock %}
+{% block content %}
+<div class="wrapper" style="padding-top:20px;padding-bottom:40px;">
+
+  <div class="breadcrumb">
+    <a href="/">Accueil</a> <span>›</span>
+    <span style="color:#333;font-weight:600;">Mon Panier</span>
+  </div>
+
+  <div class="section-title">
+    <h2><i class="bi bi-cart3"></i> Mon Panier</h2>
+    {% if items %}<span style="font-size:13px;color:#999;">{{ items|length }} article(s)</span>{% endif %}
+  </div>
+
+  {% if items %}
+  <div class="cart-wrapper">
+    <div>
+      <form action="/cart/update" method="post">
+        <div class="cart-table-wrap">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Prix unitaire</th>
+                <th>Quantité</th>
+                <th>Sous-total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:14px;">
+                    <img src="{{ item.product.image }}" width="65" height="65"
+                         style="object-fit:contain;border-radius:6px;border:1px solid #f0f0f0;" alt="{{ item.product.name }}">
+                    <div>
+                      <a href="/product/{{ item.product.id }}"
+                         style="font-size:14px;font-weight:700;color:var(--dark);text-decoration:none;">
+                        {{ item.product.name }}
+                      </a>
+                      <div style="font-size:11px;color:#aaa;margin-top:2px;">{{ item.product.category }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-weight:700;color:var(--red);">{{ "%.2f"|format(item.product.price) }} DT</td>
+                <td>
+                  <input type="number" name="qty_{{ item.product.id }}"
+                         value="{{ item.qty }}" min="1" max="{{ item.product.stock }}"
+                         class="qty-input-cart">
+                  <div style="font-size:10px;color:#888;margin-top:2px;">Stock : {{ item.product.stock }}</div>
+                </td>
+                <td style="font-weight:800;font-size:15px;color:var(--dark);">
+                  {{ "%.2f"|format(item.subtotal) }} DT
+                </td>
+                <td>
+                  <a href="/cart/remove/{{ item.product.id }}" class="btn-remove" title="Supprimer">
+                    <i class="bi bi-trash3-fill"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button type="submit" class="btn-outline">
+            <i class="bi bi-arrow-repeat"></i> Mettre à jour
+          </button>
+          <a href="/" class="btn-dark-sm">
+            <i class="bi bi-arrow-left"></i> Continuer mes achats
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Summary -->
+    <div class="cart-summary">
+      <h3><i class="bi bi-receipt"></i> Récapitulatif</h3>
+      <div style="margin-bottom:12px;">
+        {% for item in items %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f5f5f5;">
+          <span style="color:#666;">{{ item.product.name }} <strong>x{{ item.qty }}</strong></span>
+          <span style="font-weight:700;">{{ "%.2f"|format(item.subtotal) }} DT</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;color:#16a34a;font-weight:700;">
+        <span><i class="bi bi-truck"></i> Livraison</span>
+        <span>GRATUITE</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:2px solid var(--red);margin-top:8px;">
+        <span style="font-size:15px;font-weight:800;">Total TTC</span>
+        <span class="cart-total">{{ "%.2f"|format(total) }} DT</span>
+      </div>
+      <a href="/checkout" class="btn-primary" style="margin-top:14px;display:flex;text-decoration:none;">
+        <i class="bi bi-lock-fill"></i> Commander maintenant
+      </a>
+      <div style="text-align:center;margin-top:12px;">
+        <span style="font-size:11px;color:#999;"><i class="bi bi-shield-lock"></i> Paiement 100% sécurisé</span>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div style="text-align:center;padding:80px 20px;background:#fff;border-radius:10px;border:1px solid var(--gray-border);">
+    <i class="bi bi-cart-x" style="font-size:60px;color:#ddd;"></i>
+    <h3 style="margin:16px 0 8px;color:#999;font-size:18px;">Votre panier est vide</h3>
+    <p style="color:#bbb;font-size:14px;margin-bottom:24px;">Découvrez nos produits et ajoutez-en à votre panier.</p>
+    <a href="/" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:13px 35px;">
+      <i class="bi bi-arrow-left"></i> Découvrir nos produits
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Biwex - Électronique & High-Tech en Tunisie{% endblock %}
+{% block content %}
+<div class="wrapper">
+
+  <!-- Hero Slider -->
+  <div class="hero-slider">
+    <div class="slider-track" id="sliderTrack">
+      <div class="slide slide-1">
+        <div class="slide-content">
+          <div class="slide-badge">🔥 Nouveauté 2026</div>
+          <h1>iPhone <span>15 Pro</span><br>Max</h1>
+          <p>Titane. Si résistant. Si léger. Si Pro. La caméra qui change tout.</p>
+          <a href="/?category=Smartphones" class="slide-cta">Voir les Smartphones →</a>
+        </div>
+        <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=450" class="slide-image"
+          alt="iPhone 15 Pro">
+      </div>
+      <div class="slide slide-2">
+        <div class="slide-content">
+          <div class="slide-badge">💻 Best Seller</div>
+          <h1>MacBook <span>Pro</span><br>M3</h1>
+          <p>La puissance professionnelle. Autonomie inégalée. Partout.</p>
+          <a href="/?category=Laptops" class="slide-cta">Voir les Laptops →</a>
+        </div>
+        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=450" class="slide-image"
+          alt="MacBook Pro">
+      </div>
+      <div class="slide slide-3">
+        <div class="slide-content">
+          <div class="slide-badge">🎧 Promo -20%</div>
+          <h1>Sony <span>WH-1000</span><br>XM5</h1>
+          <p>Le casque numéro 1 mondial. ANC révolutionnaire. Son de studio.</p>
+          <a href="/?category=Audio" class="slide-cta">Voir l'offre →</a>
+        </div>
+        <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=450" class="slide-image"
+          alt="Sony WH-1000XM5">
+      </div>
+    </div>
+    <button class="slider-arrow slider-prev" onclick="changeSlide(-1)">‹</button>
+    <button class="slider-arrow slider-next" onclick="changeSlide(1)">›</button>
+    <div class="slider-dots">
+      <button class="dot active" onclick="goSlide(0)"></button>
+      <button class="dot" onclick="goSlide(1)"></button>
+      <button class="dot" onclick="goSlide(2)"></button>
+    </div>
+  </div>
+
+  <!-- Promo Banners -->
+  <div class="promo-banners">
+    <a href="/?category=Smartphones" class="promo-banner promo-banner-1">
+      <div>
+        <h3>Smartphones</h3>
+        <p>Derniers flagships disponibles</p>
+      </div>
+      <i class="bi bi-phone-fill"></i>
+    </a>
+    <a href="/?category=Laptops" class="promo-banner promo-banner-2">
+      <div>
+        <h3>Laptops Pro</h3>
+        <p>Performance & mobilité</p>
+      </div>
+      <i class="bi bi-laptop"></i>
+    </a>
+    <a href="/?category=Gaming" class="promo-banner promo-banner-3">
+      <div>
+        <h3>Gaming Zone</h3>
+        <p>PS5, Xbox, PC Gaming</p>
+      </div>
+      <i class="bi bi-controller"></i>
+    </a>
+  </div>
+
+  <!-- Main layout -->
+  <div class="layout-two-col">
+
+    <!-- Sidebar Categories -->
+    <aside class="sidebar-cats">
+      <div class="sidebar-cats-header">
+        <i class="bi bi-list-ul"></i> Catégories
+      </div>
+      <ul>
+        <li>
+          <a href="/" class="{{ 'active' if not selected_category }}">
+            <i class="bi bi-grid"></i> Tous les produits
+            <span class="arrow"><i class="bi bi-chevron-right"></i></span>
+          </a>
+        </li>
+        {% for cat in categories %}
+        <li>
+          <a href="/?category={{ cat }}" class="{{ 'active' if selected_category == cat }}">
+            {% if cat == 'Smartphones' %}<i class="bi bi-phone"></i>
+            {% elif cat == 'Laptops' %}<i class="bi bi-laptop"></i>
+            {% elif cat == 'Tablettes' %}<i class="bi bi-tablet"></i>
+            {% elif cat == 'Audio' %}<i class="bi bi-headphones"></i>
+            {% elif cat == 'TV' %}<i class="bi bi-tv"></i>
+            {% elif cat == 'Gaming' %}<i class="bi bi-controller"></i>
+            {% elif cat == 'Accessoires' %}<i class="bi bi-bag"></i>
+            {% else %}<i class="bi bi-box"></i>{% endif %}
+            {{ cat }}
+            <span class="arrow"><i class="bi bi-chevron-right"></i></span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </aside>
+
+    <!-- Products -->
+    <div>
+      <div class="section-title">
+        <h2>{{ selected_category if selected_category else 'Tous les produits' }}</h2>
+        <span style="font-size:13px;color:#999;font-weight:600;">{{ products|length }} produit(s) trouvé(s)</span>
+      </div>
+
+      <!-- Filter Bar -->
+      <form class="filter-bar" action="/" method="get">
+        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+        {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+        
+        <label>Trier par :</label>
+        <select name="sort" onchange="this.form.submit()">
+          <option value="">Pertinence</option>
+          <option value="new" {% if sort == 'new' %}selected{% endif %}>Nouveautés</option>
+          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Prix croissant</option>
+          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Prix décroissant</option>
+          <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Mieux notés</option>
+        </select>
+
+        <label style="margin-left:auto;">Prix min :</label>
+        <input type="number" name="min_price" value="{{ request.args.get('min_price', '') }}" style="width:80px;" placeholder="0">
+        <label>max :</label>
+        <input type="number" name="max_price" value="{{ request.args.get('max_price', '') }}" style="width:80px;" placeholder="9999">
+        <button type="submit" class="btn-dark-sm" style="padding:7px 12px;"><i class="bi bi-funnel-fill"></i> Filtrer</button>
+      </form>
+
+      <div class="products-grid">
+        {% for p in products %}
+        <div class="product-card" id="wishlist-item-{{ p.id }}">
+          {% if current_user.is_authenticated %}
+            <button class="wishlist-btn {% if p.id in wishlist_ids %}active{% endif %}" onclick="toggleWishlist({{ p.id }}, event)" title="Ajouter aux favoris">
+              <i class="bi bi-heart-fill"></i>
+            </button>
+          {% endif %}
+          
+          {% if p.original_price > p.price %}
+            <div class="product-badge promo">-{{ "%.0f"|format((p.original_price - p.price) / p.original_price * 100) }}%</div>
+          {% elif loop.index <= 3 and sort != 'price_asc' and sort != 'price_desc' %}
+            <div class="product-badge new">NEW</div>
+          {% endif %}
+          
+          <a href="/product/{{ p.id }}" style="text-decoration:none;">
+            <div class="product-img-wrap">
+              <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy">
+            </div>
+            <div class="product-info">
+              <div class="brand">{{ p.category }}</div>
+              <h3>{{ p.name }}</h3>
+              
+              <div style="display:flex;align-items:center;margin-bottom:8px;">
+                {% if p.rating > 0 %}
+                  <div class="stars">
+                    {% for i in range(1, 6) %}
+                      {% if i <= p.rating %}
+                        <i class="bi bi-star-fill"></i>
+                      {% elif i - 0.5 <= p.rating %}
+                        <i class="bi bi-star-half"></i>
+                      {% else %}
+                        <i class="bi bi-star"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <span class="rating-count">({{ p.review_count }})</span>
+                {% else %}
+                  <span style="font-size:11px;color:#bbb;">Aucun avis</span>
+                {% endif %}
+              </div>
+
+              <div class="product-price">
+                {{ "%.2f"|format(p.price) }} <span class="currency">DT</span>
+                {% if p.original_price > p.price %}
+                  <span class="price-original">{{ "%.2f"|format(p.original_price) }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+          <div style="padding:0 12px 14px;">
+            {% if p.stock > 0 %}
+              <div style="font-size:11px;color:#16a34a;font-weight:700;margin-bottom:6px;">
+                <i class="bi bi-check-circle-fill"></i> En stock ({{ p.stock }})
+              </div>
+              <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
+                <input type="hidden" name="qty" value="1">
+                <button type="submit" class="add-cart-btn">
+                  <i class="bi bi-cart-plus-fill"></i> Ajouter au panier
+                </button>
+              </form>
+            {% else %}
+              <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:6px;">
+                <i class="bi bi-x-circle-fill"></i> Rupture de stock
+              </div>
+              <button class="add-cart-btn" disabled style="background:#ccc;cursor:not-allowed;">
+                Indisponible
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;">
+        <i class="bi bi-search" style="font-size:52px;color:#ddd;"></i>
+        <p style="color:#999;margin-top:12px;font-size:15px;">Aucun produit trouvé pour votre recherche.</p>
+        <a href="/" class="btn-dark-sm" style="margin-top:15px;display:inline-flex;">Voir tous les produits</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Why Biwex -->
+<div class="why-biwex">
+  <div class="why-item">
+    <i class="bi bi-truck"></i>
+    <h4>Livraison rapide</h4>
+    <p>Partout en Tunisie sous 24-48h</p>
+  </div>
+  <div class="why-item">
+    <i class="bi bi-patch-check-fill"></i>
+    <h4>Produits officiels</h4>
+    <p>100% authentiques et garantis</p>
+  </div>
+  <div class="why-item">
+    <i class="bi bi-arrow-repeat"></i>
+    <h4>Retour facile</h4>
+    <p>7 jours pour changer d'avis</p>
+  </div>
+  <div class="why-item">
+    <i class="bi bi-headset"></i>
+    <h4>Support 7j/7</h4>
+    <p>Experts disponibles pour vous</p>
+  </div>
+</div>
+
+</div>
+{% endblock %}

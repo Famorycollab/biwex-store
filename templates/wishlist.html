@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Ma Liste de Souhaits - Biwex{% endblock %}
+{% block content %}
+<div class="wrapper" style="padding-top:20px;padding-bottom:40px;">
+
+  <div class="breadcrumb">
+    <a href="/">Accueil</a> <span>›</span>
+    <span style="color:#333;font-weight:600;">Ma Liste de Souhaits</span>
+  </div>
+
+  <div class="section-title">
+    <h2><i class="bi bi-heart-fill" style="color:var(--red);"></i> Ma Liste de Souhaits</h2>
+    <span style="font-size:13px;color:#999;">{{ items|length }} produit(s)</span>
+  </div>
+
+  {% if items %}
+  <div class="wishlist-grid products-grid">
+    {% for item in items %}
+    <div class="product-card" id="wishlist-item-{{ item.product.id }}">
+      <button class="wishlist-btn active" onclick="toggleWishlist({{ item.product.id }}, event)" title="Retirer des favoris">
+        <i class="bi bi-heart-fill"></i>
+      </button>
+      <a href="/product/{{ item.product.id }}" style="text-decoration:none;">
+        <div class="product-img-wrap">
+          <img src="{{ item.product.image }}" alt="{{ item.product.name }}" loading="lazy">
+        </div>
+        <div class="product-info">
+          <div class="brand">{{ item.product.category }}</div>
+          <h3>{{ item.product.name }}</h3>
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            {% if item.product.rating > 0 %}
+              <div class="stars">
+                {% for i in range(1, 6) %}
+                  {% if i <= item.product.rating %}
+                    <i class="bi bi-star-fill"></i>
+                  {% elif i - 0.5 <= item.product.rating %}
+                    <i class="bi bi-star-half"></i>
+                  {% else %}
+                    <i class="bi bi-star"></i>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <span class="rating-count">({{ item.product.review_count }})</span>
+            {% endif %}
+          </div>
+          <div class="product-price">
+            {{ "%.2f"|format(item.product.price) }} <span class="currency">DT</span>
+            {% if item.product.original_price > item.product.price %}
+              <span class="price-original">{{ "%.2f"|format(item.product.original_price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+      <div style="padding:0 12px 14px;">
+        {% if item.product.stock > 0 %}
+          <form action="/cart/add/{{ item.product.id }}" method="post" class="add-to-cart-form">
+            <input type="hidden" name="qty" value="1">
+            <button type="submit" class="add-cart-btn">
+              <i class="bi bi-cart-plus-fill"></i> Ajouter au panier
+            </button>
+          </form>
+        {% else %}
+          <button class="add-cart-btn" disabled style="background:#ccc;cursor:not-allowed;">
+            Rupture de stock
+          </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:80px 20px;background:#fff;border-radius:10px;border:1px solid var(--gray-border);">
+    <i class="bi bi-heart" style="font-size:60px;color:#ddd;"></i>
+    <h3 style="margin:16px 0 8px;color:#999;font-size:18px;">Votre liste de souhaits est vide</h3>
+    <p style="color:#bbb;font-size:14px;margin-bottom:24px;">Sauvegardez vos produits préférés pour les retrouver plus tard.</p>
+    <a href="/" class="btn-primary" style="display:inline-flex;text-decoration:none;padding:13px 35px;width:auto;">
+      <i class="bi bi-arrow-left"></i> Découvrir nos produits
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

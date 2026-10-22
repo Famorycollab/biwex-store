@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Mon Profil - Biwex{% endblock %}
+{% block content %}
+<div class="wrapper">
+  
+  <div class="breadcrumb" style="padding-top:20px;">
+    <a href="/">Accueil</a> <span>›</span>
+    <span style="color:#333;font-weight:600;">Mon Profil</span>
+  </div>
+
+  <div class="profile-grid">
+    
+    <!-- Sidebar Profil -->
+    <aside class="profile-sidebar">
+      <div class="profile-avatar">
+        <div class="avatar-circle">
+          {{ current_user.username[0]|upper }}
+        </div>
+        <h3>{{ current_user.username }}</h3>
+        <p>{{ current_user.email }}</p>
+      </div>
+      <ul class="profile-nav">
+        <li><a href="#" class="active"><i class="bi bi-person-fill"></i> Mes Informations</a></li>
+        <li><a href="#orders"><i class="bi bi-bag-check-fill"></i> Historique des commandes</a></li>
+        <li><a href="/wishlist"><i class="bi bi-heart-fill"></i> Ma Liste de souhaits</a></li>
+        {% if current_user.is_admin %}
+        <li><a href="/admin"><i class="bi bi-speedometer2"></i> Tableau de bord Admin</a></li>
+        {% endif %}
+        <li><a href="/logout" style="color:var(--red);"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
+      </ul>
+    </aside>
+
+    <!-- Contenu Profil -->
+    <div class="profile-content">
+      
+      <!-- Mes Infos -->
+      <div class="profile-card">
+        <h4><i class="bi bi-person-lines-fill"></i> Mes Informations Personnelles</h4>
+        <form action="/profile" method="post">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nom complet</label>
+              <input type="text" name="username" value="{{ current_user.username }}" required>
+            </div>
+            <div class="form-group">
+              <label>Téléphone</label>
+              <input type="text" name="phone" value="{{ current_user.phone }}" placeholder="+216 ...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Adresse de livraison par défaut</label>
+            <input type="text" name="address" value="{{ current_user.address }}" placeholder="Rue, numéro...">
+          </div>
+          <div class="form-group">
+            <label>Ville</label>
+            <input type="text" name="city" value="{{ current_user.city }}" placeholder="Tunis, Sfax...">
+          </div>
+          
+          <h4 style="margin-top:30px; font-size:14px;"><i class="bi bi-shield-lock-fill"></i> Sécurité</h4>
+          <div class="form-group">
+            <label>Nouveau mot de passe (laisser vide pour ne pas modifier)</label>
+            <input type="password" name="new_password" placeholder="********">
+          </div>
+          
+          <button type="submit" class="btn-primary" style="width:auto; padding:12px 30px; margin-top:10px;">
+            <i class="bi bi-save"></i> Enregistrer les modifications
+          </button>
+        </form>
+      </div>
+
+      <!-- Commandes -->
+      <div id="orders" class="profile-card">
+        <h4><i class="bi bi-bag-check-fill"></i> Mon Historique de Commandes</h4>
+        
+        {% if orders %}
+          {% for order in orders %}
+          <div class="order-item">
+            <div class="order-header">
+              <div>
+                <span class="order-id">Commande #{{ order.id }}</span>
+                <span class="order-date"> • {{ order.created_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:15px;">
+                <span class="badge 
+                  {% if order.status == 'Payée' %}badge-success
+                  {% elif order.status == 'Expédiée' %}badge-primary
+                  {% elif order.status == 'Livrée' %}badge-secondary
+                  {% else %}badge-orange{% endif %}">
+                  {{ order.status }}
+                </span>
+                <span class="order-total">{{ "%.2f"|format(order.total) }} DT</span>
+              </div>
+            </div>
+            <div class="order-products">
+              {% for item in order.items %}
+              <div class="order-product-row">
+                <img src="{{ item.product.image }}" width="40" height="40" style="object-fit:contain; border-radius:4px; border:1px solid #eee;">
+                <div style="flex:1;">
+                  <a href="/product/{{ item.product_id }}" style="color:var(--dark); text-decoration:none; font-weight:600;">{{ item.product.name }}</a>
+                  <div style="color:#888; font-size:11px;">Qté : {{ item.quantity }}</div>
+                </div>
+                <div style="font-weight:700;">{{ "%.2f"|format(item.price * item.quantity) }} DT</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center; padding:30px 10px; color:#999;">
+            <i class="bi bi-bag-x" style="font-size:40px; color:#ddd; margin-bottom:10px;"></i>
+            <p>Vous n'avez pas encore passé de commande.</p>
+            <a href="/" class="btn-outline" style="margin-top:15px;">Faire mes premiers achats</a>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
