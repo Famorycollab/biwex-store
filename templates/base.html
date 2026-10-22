@@ -5,12 +5,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Biwex Tunisie - N°1 High-Tech, Informatique & Électroménager{% endblock %}</title>
-  <meta name="description" content="Achetez en ligne au meilleur prix en Tunisie : Smartphones, PC Portables, TV, Gaming et Électroménager. Livraison 24/48h partout en Tunisie, paiement à la livraison.">
+  <meta name="description"
+    content="Achetez en ligne au meilleur prix en Tunisie : Smartphones, PC Portables, TV, Gaming et Électroménager. Livraison 24/48h partout en Tunisie, paiement à la livraison.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Favicon Navigateur Officiel Style MyTek -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.svg') }}">
 </head>
 
 <body>
@@ -19,7 +26,8 @@
   <div class="top-bar-mytek">
     <div class="top-bar-inner">
       <div class="top-bar-left">
-        <span><i class="bi bi-telephone-fill"></i> Service Commercial : <strong>36 360 000</strong> / <strong>54 360 846</strong></span>
+        <span><i class="bi bi-telephone-fill"></i> Service Commercial : <strong>36 360 000</strong> / <strong>54 360
+            846</strong></span>
         <span class="sep">|</span>
         <span><i class="bi bi-geo-alt-fill"></i> Showrooms : <em>Tunis · Ariana · Sousse · Sfax · Nabeul</em></span>
         <span class="sep">|</span>
@@ -27,11 +35,12 @@
       </div>
       <div class="top-bar-right">
         {% if current_user.is_authenticated and current_user.is_admin %}
-          <a href="/admin" class="top-link admin-pill"><i class="bi bi-shield-lock-fill"></i> Admin Dashboard</a>
+        <a href="/admin" class="top-link admin-pill"><i class="bi bi-shield-lock-fill"></i> Admin Dashboard</a>
         {% endif %}
         <a href="/profile" class="top-link"><i class="bi bi-box-seam"></i> Suivi de commande</a>
         <a href="/wishlist" class="top-link"><i class="bi bi-heart"></i> Favoris</a>
-        <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20j'ai%20besoin%20d'aide" target="_blank" class="top-link wa-top"><i class="bi bi-whatsapp"></i> Aide WhatsApp</a>
+        <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20j'ai%20besoin%20d'aide" target="_blank"
+          class="top-link wa-top"><i class="bi bi-whatsapp"></i> Aide WhatsApp</a>
       </div>
     </div>
   </div>
@@ -39,14 +48,10 @@
   <!-- Header Principal Style MyTek -->
   <header class="header-main">
     <div class="header-inner">
-      
+
       <!-- Logo Biwex / MyTek Style -->
-      <a href="/" class="mytek-logo">
-        <div class="logo-text">
-          <span class="logo-red">BI</span><span class="logo-dark">WEX</span>
-          <span class="logo-badge">.tn</span>
-        </div>
-        <span class="logo-sub">N°1 HIGH-TECH EN TUNISIE</span>
+      <a href="/" class="mytek-logo" title="Biwex Store Tunisie">
+        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Biwex Tunisie" class="mytek-logo-svg" height="46">
       </a>
 
       <!-- Mega Search Bar MyTek avec sélecteur de catégorie -->
@@ -56,13 +61,14 @@
             <select name="category">
               <option value="">Tous les rayons</option>
               {% for cat in global_categories %}
-              <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+              <option value="{{ cat }}" {% if request.args.get('category')==cat %}selected{% endif %}>{{ cat }}</option>
               {% endfor %}
             </select>
             <i class="bi bi-chevron-down select-arrow"></i>
           </div>
           <div class="search-input-wrapper">
-            <input type="text" name="search" placeholder="Rechercher un produit, une marque, une référence..." value="{{ request.args.get('search','') }}" autocomplete="off">
+            <input type="text" name="search" placeholder="Rechercher un produit, une marque, une référence..."
+              value="{{ request.args.get('search','') }}" autocomplete="off">
           </div>
           <button type="submit" class="search-submit-btn" aria-label="Rechercher">
             <i class="bi bi-search"></i>
@@ -83,7 +89,7 @@
 
       <!-- Actions Utilisateur -->
       <div class="header-actions">
-        
+
         <!-- Compte Client -->
         {% if current_user.is_authenticated %}
         <div class="header-action-item user-dropdown-wrap">
@@ -98,7 +104,8 @@
             <a href="/profile"><i class="bi bi-person"></i> Mon Profil & Commandes</a>
             <a href="/wishlist"><i class="bi bi-heart"></i> Ma Liste d'envies</a>
             {% if current_user.is_admin %}
-              <a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau d'administration</a>
+            <a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau
+              d'administration</a>
             {% endif %}
             <hr>
             <a href="/logout" class="logout-link"><i class="bi bi-box-arrow-right"></i> Se déconnecter</a>
@@ -151,7 +158,7 @@
   <!-- Barre de Navigation Rayons Style MyTek (Dark Charcoal & Red) -->
   <nav class="nav-mytek">
     <div class="nav-mytek-inner">
-      
+
       <!-- Bouton "TOUS NOS RAYONS" Mega Menu -->
       <div class="all-departments-btn" id="allDeptsBtn">
         <i class="bi bi-grid-fill"></i>
@@ -164,25 +171,31 @@
             <a href="/" class="mega-item {% if not request.args.get('category') %}active{% endif %}">
               <i class="bi bi-grid"></i> Tous nos produits
             </a>
-            <a href="/?category=Smartphones" class="mega-item {% if request.args.get('category')=='Smartphones' %}active{% endif %}">
+            <a href="/?category=Smartphones"
+              class="mega-item {% if request.args.get('category')=='Smartphones' %}active{% endif %}">
               <i class="bi bi-phone"></i> Smartphones & Téléphonie
             </a>
-            <a href="/?category=Laptops" class="mega-item {% if request.args.get('category')=='Laptops' %}active{% endif %}">
+            <a href="/?category=Laptops"
+              class="mega-item {% if request.args.get('category')=='Laptops' %}active{% endif %}">
               <i class="bi bi-laptop"></i> PC Portables & Bureautique
             </a>
-            <a href="/?category=Gaming" class="mega-item {% if request.args.get('category')=='Gaming' %}active{% endif %}">
+            <a href="/?category=Gaming"
+              class="mega-item {% if request.args.get('category')=='Gaming' %}active{% endif %}">
               <i class="bi bi-controller"></i> Univers Gaming & Consoles
             </a>
             <a href="/?category=TV" class="mega-item {% if request.args.get('category')=='TV' %}active{% endif %}">
               <i class="bi bi-tv"></i> Téléviseurs & TV 4K
             </a>
-            <a href="/?category=Audio" class="mega-item {% if request.args.get('category')=='Audio' %}active{% endif %}">
+            <a href="/?category=Audio"
+              class="mega-item {% if request.args.get('category')=='Audio' %}active{% endif %}">
               <i class="bi bi-headphones"></i> Audio, Casques & Enceintes
             </a>
-            <a href="/?category=Tablettes" class="mega-item {% if request.args.get('category')=='Tablettes' %}active{% endif %}">
+            <a href="/?category=Tablettes"
+              class="mega-item {% if request.args.get('category')=='Tablettes' %}active{% endif %}">
               <i class="bi bi-tablet"></i> Tablettes Tactiles & iPad
             </a>
-            <a href="/?category=Accessoires" class="mega-item {% if request.args.get('category')=='Accessoires' %}active{% endif %}">
+            <a href="/?category=Accessoires"
+              class="mega-item {% if request.args.get('category')=='Accessoires' %}active{% endif %}">
               <i class="bi bi-keyboard"></i> Périphériques & Accessoires
             </a>
           </div>
@@ -191,13 +204,20 @@
 
       <!-- Liens Horizontaux Rayons Principaux -->
       <ul class="nav-links-list">
-        <li><a href="/?category=Laptops" class="{{ 'active' if request.args.get('category')=='Laptops' }}"><i class="bi bi-laptop"></i> Informatique</a></li>
-        <li><a href="/?category=Smartphones" class="{{ 'active' if request.args.get('category')=='Smartphones' }}"><i class="bi bi-phone"></i> Téléphonie</a></li>
-        <li><a href="/?category=Gaming" class="{{ 'active' if request.args.get('category')=='Gaming' }}"><i class="bi bi-controller"></i> Gaming</a></li>
-        <li><a href="/?category=TV" class="{{ 'active' if request.args.get('category')=='TV' }}"><i class="bi bi-tv"></i> TV & Son</a></li>
-        <li><a href="/?category=Tablettes" class="{{ 'active' if request.args.get('category')=='Tablettes' }}"><i class="bi bi-tablet"></i> Tablettes</a></li>
-        <li><a href="/?category=Audio" class="{{ 'active' if request.args.get('category')=='Audio' }}"><i class="bi bi-headphones"></i> Audio</a></li>
-        <li><a href="/?category=Accessoires" class="{{ 'active' if request.args.get('category')=='Accessoires' }}"><i class="bi bi-bag"></i> Accessoires</a></li>
+        <li><a href="/?category=Laptops" class="{{ 'active' if request.args.get('category')=='Laptops' }}"><i
+              class="bi bi-laptop"></i> Informatique</a></li>
+        <li><a href="/?category=Smartphones" class="{{ 'active' if request.args.get('category')=='Smartphones' }}"><i
+              class="bi bi-phone"></i> Téléphonie</a></li>
+        <li><a href="/?category=Gaming" class="{{ 'active' if request.args.get('category')=='Gaming' }}"><i
+              class="bi bi-controller"></i> Gaming</a></li>
+        <li><a href="/?category=TV" class="{{ 'active' if request.args.get('category')=='TV' }}"><i
+              class="bi bi-tv"></i> TV & Son</a></li>
+        <li><a href="/?category=Tablettes" class="{{ 'active' if request.args.get('category')=='Tablettes' }}"><i
+              class="bi bi-tablet"></i> Tablettes</a></li>
+        <li><a href="/?category=Audio" class="{{ 'active' if request.args.get('category')=='Audio' }}"><i
+              class="bi bi-headphones"></i> Audio</a></li>
+        <li><a href="/?category=Accessoires" class="{{ 'active' if request.args.get('category')=='Accessoires' }}"><i
+              class="bi bi-bag"></i> Accessoires</a></li>
         <li class="flash-link-item">
           <a href="/#ventes-flash" class="flash-link">
             <span class="fire-icon">🔥</span> VENTES FLASH & PROMOS
@@ -220,9 +240,7 @@
   <!-- Mobile Drawer Menu -->
   <div class="mobile-drawer" id="mobileDrawer">
     <div class="drawer-header">
-      <div class="logo-text">
-        <span class="logo-red">BI</span><span class="logo-dark">WEX</span>
-      </div>
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Biwex" height="38">
       <button class="drawer-close" onclick="toggleMobileNav()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="drawer-content">
@@ -246,15 +264,15 @@
       <div class="drawer-section-title">MON COMPTE</div>
       <ul class="drawer-links">
         {% if current_user.is_authenticated %}
-          <li><a href="/profile"><i class="bi bi-person"></i> Mon Profil ({{ current_user.username }})</a></li>
-          <li><a href="/wishlist"><i class="bi bi-heart"></i> Mes Favoris</a></li>
-          {% if current_user.is_admin %}
-            <li><a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau Admin</a></li>
-          {% endif %}
-          <li><a href="/logout"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
+        <li><a href="/profile"><i class="bi bi-person"></i> Mon Profil ({{ current_user.username }})</a></li>
+        <li><a href="/wishlist"><i class="bi bi-heart"></i> Mes Favoris</a></li>
+        {% if current_user.is_admin %}
+        <li><a href="/admin" style="color:var(--mytek-red);"><i class="bi bi-gear-fill"></i> Panneau Admin</a></li>
+        {% endif %}
+        <li><a href="/logout"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
         {% else %}
-          <li><a href="/login"><i class="bi bi-box-arrow-in-right"></i> Connexion</a></li>
-          <li><a href="/register"><i class="bi bi-person-plus"></i> Créer un compte</a></li>
+        <li><a href="/login"><i class="bi bi-box-arrow-in-right"></i> Connexion</a></li>
+        <li><a href="/register"><i class="bi bi-person-plus"></i> Créer un compte</a></li>
         {% endif %}
       </ul>
     </div>
@@ -342,14 +360,15 @@
   <footer class="footer-mytek">
     <div class="footer-inner">
       <div class="footer-grid">
-        
+
         <!-- Colonne 1 : À Propos -->
         <div class="footer-col">
           <div class="footer-logo">
             <span class="logo-red">BI</span><span class="logo-white">WEX</span><span class="logo-badge">.tn</span>
           </div>
           <p class="footer-about">
-            Votre référence n°1 pour la vente en ligne de matériel informatique, smartphones, gaming, TV et multimédia en Tunisie avec les meilleurs prix garantis.
+            Votre référence n°1 pour la vente en ligne de matériel informatique, smartphones, gaming, TV et multimédia
+            en Tunisie avec les meilleurs prix garantis.
           </p>
           <div class="footer-contact-item">
             <i class="bi bi-telephone-fill"></i>
@@ -424,7 +443,8 @@
       <!-- Footer Bottom -->
       <div class="footer-bottom">
         <div class="footer-bottom-copy">
-          © 2026 <strong>Biwex Store</strong> (biwex.tn). Tous droits réservés. Conçu dans les standards officiels de la vente en ligne en Tunisie.
+          © 2026 <strong>Biwex Store</strong> (biwex.tn). Tous droits réservés. Conçu dans les standards officiels de la
+          vente en ligne en Tunisie.
         </div>
         <div class="footer-badges">
           <span class="badge-item"><i class="bi bi-shield-fill-check"></i> 100% Sécurisé</span>
@@ -436,11 +456,8 @@
   </footer>
 
   <!-- Bouton WhatsApp Flottant Style MyTek -->
-  <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20ou%20avoir%20des%20renseignements" 
-     class="floating-wa-btn" 
-     target="_blank" 
-     aria-label="Contacter sur WhatsApp"
-     title="Discuter avec nous sur WhatsApp">
+  <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20ou%20avoir%20des%20renseignements"
+    class="floating-wa-btn" target="_blank" aria-label="Contacter sur WhatsApp" title="Discuter avec nous sur WhatsApp">
     <div class="wa-bubble-tip">Besoin d'aide ? <strong>Écrivez-nous !</strong></div>
     <div class="wa-icon-circle">
       <i class="bi bi-whatsapp"></i>
@@ -448,10 +465,12 @@
   </a>
 
   <!-- Bouton Retour Haut -->
-  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Retour en haut">
+  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0, behavior:'smooth'})"
+    aria-label="Retour en haut">
     <i class="bi bi-arrow-up"></i>
   </button>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
+
 </html>
