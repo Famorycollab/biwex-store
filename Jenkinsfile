@@ -27,6 +27,7 @@ pipeline {
         stage('2 - Setup') {
             steps {
                 echo 'Verification de l environnement'
+
                 bat '''
                     if not exist app.py exit /b 1
                     if not exist requirements.txt exit /b 1
@@ -40,6 +41,7 @@ pipeline {
         stage('3 - Build Docker') {
             steps {
                 echo 'Construction de l image Docker'
+
                 bat '''
                     "%DOCKER%" build -t "%IMAGE_NAME%:dev-%BUILD_NUMBER%" . > artifacts\\docker-build.log 2>&1
                     set "BUILD_EXIT=%ERRORLEVEL%"
@@ -52,6 +54,7 @@ pipeline {
         stage('4 - Run Docker') {
             steps {
                 echo 'Demarrage du conteneur de test'
+
                 bat '''
                     "%DOCKER%" rm -f "%CONTAINER_NAME%" 2>NUL
                     "%DOCKER%" run -d --name "%CONTAINER_NAME%" -e SECRET_KEY=jenkins-ci-test-secret "%IMAGE_NAME%:dev-%BUILD_NUMBER%"
@@ -59,7 +62,6 @@ pipeline {
                 '''
             }
         }
-
 
         stage('5 - Smoke Test') {
             steps {
@@ -86,26 +88,38 @@ pipeline {
                             exit /b 0
                         '''
 
-                        writeFile file: 'artifacts/smoke-status.txt', text: 'PASSED'
+                        env.SMOKE_STATUS = 'PASSED'
+
+                        writeFile(
+                            file: 'artifacts/smoke-status.txt',
+                            text: 'PASSED'
+                        )
+
                     } catch (err) {
-                        writeFile file: 'artifacts/smoke-status.txt', text: 'FAILED'
+                        env.SMOKE_STATUS = 'FAILED'
+
+                        writeFile(
+                            file: 'artifacts/smoke-status.txt',
+                            text: 'FAILED'
+                        )
+
                         throw err
                     }
                 }
             }
         }
 
-
-
-
         stage('6 - Archive Artifacts') {
             steps {
                 echo 'Generation du rapport et archivage'
 
                 script {
-                    def smokeResult = readFile('artifacts/smoke-status.txt').trim()
+                    def smokeResult = readFile(
+                        'artifacts/smoke-status.txt'
+                    ).trim()
 
-                    writeFile file: 'artifacts/pipeline-report.txt',
+                    writeFile(
+                        file: 'artifacts/pipeline-report.txt',
                         text: """Pipeline: Biwex-Store-Pipeline
 Build: ${env.BUILD_NUMBER}
 Branch: dev
@@ -113,12 +127,16 @@ Image: ${env.IMAGE_NAME}:dev-${env.BUILD_NUMBER}
 Smoke Test: ${smokeResult}
 Result: ${currentBuild.currentResult}
 """
+                    )
                 }
 
-                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'artifacts/**',
+                    fingerprint: true
+                )
             }
         }
-
+    }
 
     post {
         always {
