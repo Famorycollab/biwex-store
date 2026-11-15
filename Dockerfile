@@ -6,8 +6,7 @@ WORKDIR /build
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+RUN pip install --no-cache-dir --retries 10 --timeout 180 -r requirements.txt
 # Étape 2 : image finale légère
 FROM python:${PYTHON_VERSION}-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
