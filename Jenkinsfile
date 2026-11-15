@@ -1,5 +1,4 @@
 
-cat > Jenkinsfile <<'JENKINS'
 pipeline {
     agent any
 
