@@ -27,14 +27,11 @@ pipeline {
         stage('2 - Setup') {
             steps {
                 echo 'Verification de l environnement'
-
                 bat '''
                     if not exist app.py exit /b 1
                     if not exist requirements.txt exit /b 1
                     if not exist scripts\\smoke_test.py exit /b 1
-
                     if not exist artifacts mkdir artifacts
-
                     "%DOCKER%" version
                 '''
             }
@@ -43,14 +40,10 @@ pipeline {
         stage('3 - Build Docker') {
             steps {
                 echo 'Construction de l image Docker'
-
                 bat '''
                     "%DOCKER%" build -t "%IMAGE_NAME%:dev-%BUILD_NUMBER%" . > artifacts\\docker-build.log 2>&1
-
                     set "BUILD_EXIT=%ERRORLEVEL%"
-
                     type artifacts\\docker-build.log
-
                     exit /b %BUILD_EXIT%
                 '''
             }
@@ -59,12 +52,9 @@ pipeline {
         stage('4 - Run Docker') {
             steps {
                 echo 'Demarrage du conteneur de test'
-
                 bat '''
                     "%DOCKER%" rm -f "%CONTAINER_NAME%" 2>NUL
-
                     "%DOCKER%" run -d --name "%CONTAINER_NAME%" -e SECRET_KEY=jenkins-ci-test-secret "%IMAGE_NAME%:dev-%BUILD_NUMBER%"
-
                     if errorlevel 1 exit /b 1
                 '''
             }
@@ -98,25 +88,29 @@ pipeline {
 
                     } catch (err) {
                         env.SMOKE_STATUS = 'FAILED'
+                        writeFile file: 'artifacts/smoke-status.txt', text: 'FAILED'
                         throw err
                     }
+
+                    writeFile file: 'artifacts/smoke-status.txt', text: 'PASSED'
                 }
             }
         }
 
         stage('6 - Archive Artifacts') {
             steps {
-                echo 'Preparation des fichiers de rapport'
+                echo 'Generation du rapport et archivage'
 
-                bat '''
-                    (
-                        echo Pipeline: Biwex-Store-Pipeline
-                        echo Build: %BUILD_NUMBER%
-                        echo Branch: dev
-                        echo Image: %IMAGE_NAME%:dev-%BUILD_NUMBER%
-                        echo Smoke Test: %SMOKE_STATUS%
-                    ) > artifacts\\pipeline-report.txt
-                '''
+                script {
+                    writeFile file: 'artifacts/pipeline-report.txt',
+                        text: """Pipeline: Biwex-Store-Pipeline
+Build: ${env.BUILD_NUMBER}
+Branch: dev
+Image: ${env.IMAGE_NAME}:dev-${env.BUILD_NUMBER}
+Smoke Test: ${env.SMOKE_STATUS}
+Result: ${currentBuild.currentResult}
+"""
+                }
 
                 archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             }
@@ -125,21 +119,7 @@ pipeline {
 
     post {
         always {
-            echo 'Archivage final et nettoyage'
-
-            bat '''
-                if not exist artifacts mkdir artifacts
-
-                (
-                    echo Pipeline: Biwex-Store-Pipeline
-                    echo Build: %BUILD_NUMBER%
-                    echo Branch: dev
-                    echo Image: %IMAGE_NAME%:dev-%BUILD_NUMBER%
-                    echo Smoke Test: %SMOKE_STATUS%
-                ) > artifacts\\pipeline-report.txt
-            '''
-
-            archiveArtifacts artifacts: 'artifacts/**', allowEmptyArchive: true, fingerprint: true
+            echo 'Nettoyage du conteneur de test'
 
             bat '''
                 "%DOCKER%" rm -f "%CONTAINER_NAME%" 2>NUL
