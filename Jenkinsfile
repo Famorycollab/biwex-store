@@ -31,6 +31,7 @@ pipeline {
                 bat '''
                     if not exist app.py exit /b 1
                     if not exist requirements.txt exit /b 1
+                    if not exist Dockerfile exit /b 1
                     if not exist scripts\\smoke_test.py exit /b 1
                     if not exist artifacts mkdir artifacts
                     "%DOCKER%" version
