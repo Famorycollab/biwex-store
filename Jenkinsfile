@@ -60,6 +60,7 @@ pipeline {
             }
         }
 
+
         stage('5 - Smoke Test') {
             steps {
                 echo 'Verification HTTP avec plusieurs tentatives'
@@ -72,42 +73,44 @@ pipeline {
 
                                 "%DOCKER%" exec "%CONTAINER_NAME%" python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
 
-                                if not errorlevel 1 (
-                                    type artifacts\\smoke-test.txt
-                                    exit /b 0
-                                )
+                                if not errorlevel 1 goto smoke_passed
 
                                 timeout /t 2 /nobreak >NUL
                             )
 
                             type artifacts\\smoke-test.txt
                             exit /b 1
+
+                            :smoke_passed
+                            type artifacts\\smoke-test.txt
+                            exit /b 0
                         '''
 
-                        env.SMOKE_STATUS = 'PASSED'
-
+                        writeFile file: 'artifacts/smoke-status.txt', text: 'PASSED'
                     } catch (err) {
-                        env.SMOKE_STATUS = 'FAILED'
                         writeFile file: 'artifacts/smoke-status.txt', text: 'FAILED'
                         throw err
                     }
-
-                    writeFile file: 'artifacts/smoke-status.txt', text: 'PASSED'
                 }
             }
         }
+
+
+
 
         stage('6 - Archive Artifacts') {
             steps {
                 echo 'Generation du rapport et archivage'
 
                 script {
+                    def smokeResult = readFile('artifacts/smoke-status.txt').trim()
+
                     writeFile file: 'artifacts/pipeline-report.txt',
                         text: """Pipeline: Biwex-Store-Pipeline
 Build: ${env.BUILD_NUMBER}
 Branch: dev
 Image: ${env.IMAGE_NAME}:dev-${env.BUILD_NUMBER}
-Smoke Test: ${env.SMOKE_STATUS}
+Smoke Test: ${smokeResult}
 Result: ${currentBuild.currentResult}
 """
                 }
@@ -115,7 +118,7 @@ Result: ${currentBuild.currentResult}
                 archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             }
         }
-    }
+
 
     post {
         always {
