@@ -1160,6 +1160,33 @@ def update_order_status(id):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  ENDPOINT HEALTH CHECK
+#
+#  Route spéciale utilisée par Jenkins, Docker et les sondes
+#  pour vérifier que l'application est en bonne santé (opérationnelle).
+#
+#  Retourne un JSON avec :
+#    - status : "healthy" si tout fonctionne
+#    - app    : nom de l'application
+#    - version: version courante
+#
+#  Usage depuis Jenkins ou curl :
+#    curl http://localhost:5000/health → {"status": "healthy", ...}
+# ═══════════════════════════════════════════════════════════════
+@app.route('/health')
+def health_check():
+    """
+    Endpoint de vérification de santé pour le monitoring.
+    Utilisé par les smoke tests et les sondes Docker/Kubernetes.
+    """
+    return jsonify({
+        'status': 'healthy',
+        'app': 'Biwex Store',
+        'version': '1.0.0'
+    }), 200
+
+
+# ═══════════════════════════════════════════════════════════════
 #  POINT D'ENTRÉE — Démarrage du serveur de développement
 #
 #  En DÉVELOPPEMENT : python app.py → serveur Flask (debug=True)
