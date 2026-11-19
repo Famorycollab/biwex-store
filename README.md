@@ -31,13 +31,16 @@ Le projet implémente **3 pipelines Jenkins** distincts couvrant l'intégralité
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 🔱 Branches Git
+### 🔱 Branches Git & Binôme
 
-| Branche | Rôle | Protection |
-|---------|------|------------|
-| `main` | Code stable, prêt pour la production | ✅ Protégée — merge uniquement via PR |
-| `dev` | Intégration des features, branche de travail principale | ✅ Protégée — merge via PR uniquement |
-| `feature/*` | Développement de nouvelles fonctionnalités | ❌ Libres |
+Le projet applique une séparation stricte des rôles et des branches conformément aux consignes :
+
+| Branche | Responsable | Rôle | Protection / Règle |
+|---------|-------------|------|--------------------|
+| `main` | Binôme | Code stable de production | ✅ Protégée (Merge via PR uniquement) |
+| `dev` | Binôme | Intégration continue | ✅ Protégée (Merge via PR uniquement) |
+| `feature/famory-toure` | **Famory TOURE** | Docker multi-stage, Jenkinsfile principal, tests structure | ✅ Commits signés `tourefamory5@gmail.com` |
+| `feature/abdoul-traore` | **Abdoul TRAORE** | Jenkinsfile-PR, Jenkinsfile-Tag, healthcheck, docs PR | ✅ Commits signés `a21traore06@gmail.com` |
 
 ---
 
