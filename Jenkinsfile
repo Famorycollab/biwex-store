@@ -1,171 +1,128 @@
 // ============================================================
 //  PIPELINE 2 : BUILD COMPLET SUR PUSH (branche dev)
-//  Déclencheur : chaque push sur la branche "dev"
-//  But          : Construire, tester et archiver l'image Docker
-//                 en mode parallèle (Python 3.11 et 3.12)
+//  Déclencheur : push sur "dev" ou déclenchement manuel
+//  Objectif    : Build multi-version parallèle (Python 3.11 & 3.12),
+//                exécution conteneurisée, smoke test et archivage
 // ============================================================
 
 pipeline {
     agent any
 
-    // ── OPTIONS GLOBALES ────────────────────────────────────────
     options {
-        skipDefaultCheckout(true)          // On contrôle le checkout manuellement
-        timestamps()                        // Affiche l'heure devant chaque ligne de log
-        disableConcurrentBuilds()           // Interdit deux builds simultanés (évite les conflits Docker)
-        buildDiscarder(logRotator(numToKeepStr: '10'))  // Garde les 10 derniers builds
+        skipDefaultCheckout(true)
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    // ── VARIABLES D'ENVIRONNEMENT ───────────────────────────────
     environment {
-        // Chemin complet vers l'exécutable Docker Desktop sur Windows
-        DOCKER       = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
-        // Nom de base de l'image Docker (sera suffixé par la version Python)
-        IMAGE_BASE   = 'biwex-store'
-        // Statut global du smoke test (mis à jour dans le stage 5)
-        SMOKE_STATUS = 'NOT_RUN'
+        // Chemin absolu Docker Desktop (Windows)
+        DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        IMAGE_BASE     = 'biwex-store'
+        CONTAINER_NAME = "biwex-dev-test-${BUILD_NUMBER}"
+        SMOKE_STATUS   = 'NOT_RUN'
     }
-
-    // ── DÉCLENCHEURS ────────────────────────────────────────────
-    // Note : le trigger réel (push sur dev) est configuré dans Jenkins
-    // via "GitHub hook trigger for GITScm polling" ou un Webhook GitHub
 
     stages {
 
         // ══════════════════════════════════════════════════════
         // STAGE 1 - CHECKOUT
-        // Récupère le code source depuis GitHub (branche dev)
         // ══════════════════════════════════════════════════════
         stage('1 - Checkout') {
             steps {
-                echo '╔══════════════════════════════════════╗'
-                echo '║  STAGE 1 : Checkout du code source  ║'
-                echo '╚══════════════════════════════════════╝'
-                echo "Branche : ${env.BRANCH_NAME}"
-                echo "Commit  : ${env.GIT_COMMIT}"
-
-                // Télécharge le code depuis le dépôt GitHub configuré dans Jenkins
+                echo '=== STAGE 1 : Récupération du code source (dev) ==='
                 checkout scm
+                script {
+                    echo "Branche active : ${env.BRANCH_NAME ?: 'dev'}"
+                    echo "Build Jenkins   : #${env.BUILD_NUMBER}"
+                }
             }
         }
 
         // ══════════════════════════════════════════════════════
         // STAGE 2 - SETUP
-        // Vérifie que tous les fichiers nécessaires sont présents
-        // et que Docker est accessible depuis Jenkins
         // ══════════════════════════════════════════════════════
         stage('2 - Setup') {
             steps {
-                echo '╔══════════════════════════════════════╗'
-                echo '║  STAGE 2 : Vérification environnement║'
-                echo '╚══════════════════════════════════════╝'
-
+                echo '=== STAGE 2 : Vérification de l environnement et des prérequis ==='
                 bat '''
                     @echo off
-                    echo [Setup] Verification des fichiers obligatoires...
+                    echo [Setup] Verification de l arborescence du projet...
 
-                    REM -- Vérification fichier application principal
                     if not exist app.py (
                         echo ERREUR : app.py manquant !
                         exit /b 1
                     )
-
-                    REM -- Vérification des dépendances Python
                     if not exist requirements.txt (
                         echo ERREUR : requirements.txt manquant !
                         exit /b 1
                     )
-
-                    REM -- Vérification de la recette Docker
                     if not exist Dockerfile (
                         echo ERREUR : Dockerfile manquant !
                         exit /b 1
                     )
-
-                    REM -- Vérification du script de smoke test
                     if not exist scripts\\smoke_test.py (
                         echo ERREUR : scripts\\smoke_test.py manquant !
                         exit /b 1
                     )
 
-                    REM -- Création du répertoire d'artefacts si inexistant
                     if not exist artifacts mkdir artifacts
-
-                    echo [Setup] Tous les fichiers sont presents. OK
+                    echo [Setup] Fichiers requis presents. OK.
                     echo.
 
-                    echo [Docker] Version de Docker :
-                    "%DOCKER%" version
-
-                    echo.
-                    echo [Docker] Images existantes sur le systeme :
-                    "%DOCKER%" images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}"
+                    echo [Setup] Verification de Docker...
+                    if exist "%DOCKER_BIN%" (
+                        "%DOCKER_BIN%" version
+                    ) else (
+                        docker version
+                    )
                 '''
             }
         }
 
         // ══════════════════════════════════════════════════════
-        // STAGE 3 - BUILD PARALLÈLE
-        // Construit l'image Docker en PARALLÈLE pour :
-        //   - Python 3.11 (version stable LTS)
-        //   - Python 3.12 (version récente)
-        // La parallélisation réduit le temps total de CI/CD
+        // STAGE 3 - BUILD PARALLÈLE (Python 3.11 & Python 3.12)
         // ══════════════════════════════════════════════════════
         stage('3 - Build Docker (Parallèle)') {
             parallel {
 
-                // ── Build avec Python 3.11 ──────────────────
-                stage('Build Python 3.11') {
+                stage('Build Python 3.11 (LTS)') {
                     steps {
-                        echo '╔═══════════════════════════════════════╗'
-                        echo '║  Build Docker - Python 3.11           ║'
-                        echo '╚═══════════════════════════════════════╝'
-
+                        echo '=== Construction image Docker - Python 3.11 ==='
                         bat '''
                             @echo off
-                            echo [Build 3.11] Construction de l image Docker avec Python 3.11...
+                            set "DOCKER_CMD=%DOCKER_BIN%"
+                            if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                            REM -- Construction de l'image avec l'ARG PYTHON_VERSION
-                            REM -- Le tag inclut le numéro de build Jenkins pour traçabilité
-                            "%DOCKER%" build ^
+                            "%DOCKER_CMD%" build ^
                                 --build-arg PYTHON_VERSION=3.11 ^
-                                -t biwex-store:dev-%BUILD_NUMBER%-py311 ^
-                                . ^
-                                > artifacts\\docker-build-py311.log 2>&1
+                                -t %IMAGE_BASE%:dev-%BUILD_NUMBER%-py311 ^
+                                . > artifacts\\docker-build-py311.log 2>&1
 
-                            set "EXIT_CODE=%ERRORLEVEL%"
-
-                            REM -- Affiche le log pour les archives Jenkins
+                            set "BUILD_EXIT=%ERRORLEVEL%"
                             type artifacts\\docker-build-py311.log
-
-                            REM -- Propage le code d'erreur si le build a échoué
-                            exit /b %EXIT_CODE%
+                            exit /b %BUILD_EXIT%
                         '''
                     }
                 }
 
-                // ── Build avec Python 3.12 ──────────────────
-                stage('Build Python 3.12') {
+                stage('Build Python 3.12 (Compatibilité)') {
                     steps {
-                        echo '╔═══════════════════════════════════════╗'
-                        echo '║  Build Docker - Python 3.12           ║'
-                        echo '╚═══════════════════════════════════════╝'
-
+                        echo '=== Construction image Docker - Python 3.12 ==='
                         bat '''
                             @echo off
-                            echo [Build 3.12] Construction de l image Docker avec Python 3.12...
+                            set "DOCKER_CMD=%DOCKER_BIN%"
+                            if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                            "%DOCKER%" build ^
+                            "%DOCKER_CMD%" build ^
                                 --build-arg PYTHON_VERSION=3.12 ^
-                                -t biwex-store:dev-%BUILD_NUMBER%-py312 ^
-                                . ^
-                                > artifacts\\docker-build-py312.log 2>&1
+                                -t %IMAGE_BASE%:dev-%BUILD_NUMBER%-py312 ^
+                                . > artifacts\\docker-build-py312.log 2>&1
 
-                            set "EXIT_CODE=%ERRORLEVEL%"
-
+                            set "BUILD_EXIT=%ERRORLEVEL%"
                             type artifacts\\docker-build-py312.log
-
-                            exit /b %EXIT_CODE%
+                            exit /b %BUILD_EXIT%
                         '''
                     }
                 }
@@ -174,111 +131,66 @@ pipeline {
 
         // ══════════════════════════════════════════════════════
         // STAGE 4 - RUN DOCKER
-        // Démarre un conteneur de test temporaire basé sur
-        // l'image Python 3.11 (image principale de référence)
-        // Le conteneur tourne en arrière-plan (-d)
         // ══════════════════════════════════════════════════════
         stage('4 - Run Docker') {
             steps {
-                echo '╔══════════════════════════════════════╗'
-                echo '║  STAGE 4 : Démarrage du conteneur   ║'
-                echo '╚══════════════════════════════════════╝'
-
+                echo '=== STAGE 4 : Démarrage du conteneur de test ==='
                 bat '''
                     @echo off
-                    set "CONTAINER=biwex-store-dev-test-%BUILD_NUMBER%"
+                    set "DOCKER_CMD=%DOCKER_BIN%"
+                    if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    echo [Run] Suppression de tout conteneur residuel avec le meme nom...
-                    "%DOCKER%" rm -f %CONTAINER% 2>NUL
+                    echo [Run] Arret de tout ancien conteneur residuel...
+                    "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                    echo [Run] Demarrage du conteneur de test...
-                    REM -- SECRET_KEY : clé secrète Flask injectée en variable d'environnement
-                    REM -- -d : mode détaché (conteneur en arrière-plan)
-                    "%DOCKER%" run -d ^
-                        --name %CONTAINER% ^
-                        -e SECRET_KEY=jenkins-dev-ci-secret-key ^
-                        biwex-store:dev-%BUILD_NUMBER%-py311
+                    echo [Run] Lancement du conteneur %CONTAINER_NAME%...
+                    "%DOCKER_CMD%" run -d ^
+                        --name %CONTAINER_NAME% ^
+                        -e SECRET_KEY=jenkins-dev-secret-key ^
+                        %IMAGE_BASE%:dev-%BUILD_NUMBER%-py311
 
                     if errorlevel 1 (
-                        echo ERREUR : Echec du demarrage du conteneur !
+                        echo ERREUR : Echec du lancement du conteneur.
                         exit /b 1
                     )
 
-                    echo [Run] Conteneur demarre avec succes : %CONTAINER%
-                    echo [Run] Attente de 5 secondes pour l initialisation de l application...
-                    timeout /t 5 /nobreak >NUL
-
-                    echo [Run] Etat du conteneur :
-                    "%DOCKER%" ps --filter name=%CONTAINER% --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+                    echo [Run] Conteneur demarre avec succes.
+                    "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
+                // Pause sécurisée pour laisser le temps à Gunicorn de démarrer
+                sleep(time: 5, unit: 'SECONDS')
             }
         }
 
         // ══════════════════════════════════════════════════════
         // STAGE 5 - SMOKE TEST
-        // Test rapide "go/no-go" : vérifie que l'application
-        // répond sur HTTP 200 après démarrage.
-        // - Jusqu'à 15 tentatives avec 2 sec d'attente entre chaque
-        // - Résultat PASSED ou FAILED enregistré dans un fichier
-        // - En cas d'échec, le pipeline est marqué FAILED
         // ══════════════════════════════════════════════════════
         stage('5 - Smoke Test') {
             steps {
-                echo '╔══════════════════════════════════════╗'
-                echo '║  STAGE 5 : Smoke Test HTTP           ║'
-                echo '╚══════════════════════════════════════╝'
-
+                echo '=== STAGE 5 : Smoke Test HTTP (Validation rapide) ==='
                 script {
-                    // On utilise un try/catch pour capturer le statut (PASSED/FAILED)
-                    // même si le test échoue, pour l'écrire dans le rapport final
                     try {
-                        bat '''
-                            @echo off
-                            set "CONTAINER=biwex-store-dev-test-%BUILD_NUMBER%"
+                        // 15 tentatives espacées de 2 secondes
+                        retry(15) {
+                            sleep(time: 2, unit: 'SECONDS')
+                            bat '''
+                                @echo off
+                                set "DOCKER_CMD=%DOCKER_BIN%"
+                                if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                            echo [Smoke] Lancement du smoke test sur http://127.0.0.1:5000/
-                            echo [Smoke] Maximum 15 tentatives, 2 secondes entre chaque...
-                            echo.
+                                "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
+                                type artifacts\\smoke-test.txt
+                            '''
+                        }
 
-                            REM -- Boucle de retry : attend que l'appli soit prête
-                            for /L %%i in (1,1,15) do (
-                                echo [Smoke] Tentative %%i sur 15...
-
-                                REM -- Exécute le script Python DANS le conteneur Docker
-                                "%DOCKER%" exec %CONTAINER% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
-
-                                REM -- Si le code de retour est 0, le test est passé
-                                if not errorlevel 1 goto :smoke_ok
-
-                                REM -- Sinon, attendre avant de réessayer
-                                timeout /t 2 /nobreak >NUL
-                            )
-
-                            REM -- Après 15 tentatives sans succès → FAILED
-                            type artifacts\\smoke-test.txt
-                            echo.
-                            echo [Smoke] RESULTAT FINAL : FAILED apres 15 tentatives
-                            exit /b 1
-
-                            :smoke_ok
-                            type artifacts\\smoke-test.txt
-                            echo.
-                            echo [Smoke] RESULTAT FINAL : PASSED
-                            exit /b 0
-                        '''
-
-                        // Mise à jour de la variable d'environnement Jenkins
                         env.SMOKE_STATUS = 'PASSED'
-
-                        // Écriture du fichier de statut pour le rapport
                         writeFile(file: 'artifacts/smoke-status.txt', text: 'PASSED')
+                        echo '=== SMOKE TEST : PASSED ==='
 
                     } catch (err) {
-                        // Le test a échoué après toutes les tentatives
                         env.SMOKE_STATUS = 'FAILED'
                         writeFile(file: 'artifacts/smoke-status.txt', text: 'FAILED')
-
-                        // On relance l'exception pour marquer le build FAILED
+                        echo '=== SMOKE TEST : FAILED ==='
                         throw err
                     }
                 }
@@ -287,118 +199,76 @@ pipeline {
 
         // ══════════════════════════════════════════════════════
         // STAGE 6 - ARCHIVE ARTIFACTS
-        // Génère un rapport de pipeline synthétique et archive
-        // tous les artefacts dans Jenkins pour traçabilité :
-        //   - docker-build-py311.log
-        //   - docker-build-py312.log
-        //   - smoke-test.txt
-        //   - smoke-status.txt
-        //   - pipeline-report.txt
         // ══════════════════════════════════════════════════════
         stage('6 - Archive Artifacts') {
             steps {
-                echo '╔══════════════════════════════════════╗'
-                echo '║  STAGE 6 : Archivage des artefacts  ║'
-                echo '╚══════════════════════════════════════╝'
-
+                echo '=== STAGE 6 : Génération et archivage des artefacts ==='
                 script {
-                    // Lecture du résultat du smoke test
-                    def smokeResult = 'UNKNOWN'
-                    if (fileExists('artifacts/smoke-status.txt')) {
-                        smokeResult = readFile('artifacts/smoke-status.txt').trim()
-                    }
+                    def smokeResult = fileExists('artifacts/smoke-status.txt') ? readFile('artifacts/smoke-status.txt').trim() : 'UNKNOWN'
 
-                    // Génération d'un rapport de pipeline lisible
                     def report = """\
-╔══════════════════════════════════════════════════════╗
-║          RAPPORT DE PIPELINE - BIWEX STORE          ║
-╚══════════════════════════════════════════════════════╝
+==============================================================
+ RAPPORT D'EXECUTION PIPELINE - BIWEX STORE [DEV]
+==============================================================
+Date d'execution : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
+Pipeline         : Biwex-Store-Dev (Push sur dev)
+Build Numero     : #${env.BUILD_NUMBER}
+Branche          : ${env.BRANCH_NAME ?: 'dev'}
+Commit           : ${env.GIT_COMMIT ?: 'N/A'}
 
-PIPELINE      : Biwex-Store-Dev (Build complet sur push)
-BUILD N°      : ${env.BUILD_NUMBER}
-BRANCHE       : ${env.BRANCH_NAME ?: 'dev'}
-COMMIT        : ${env.GIT_COMMIT ?: 'N/A'}
-DATE          : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
+IMAGES CONSTRUITES :
+  - ${env.IMAGE_BASE}:dev-${env.BUILD_NUMBER}-py311 (Python 3.11 - Principal)
+  - ${env.IMAGE_BASE}:dev-${env.BUILD_NUMBER}-py312 (Python 3.12 - Parallèle)
 
-IMAGES DOCKER :
-  - biwex-store:dev-${env.BUILD_NUMBER}-py311  (Python 3.11)
-  - biwex-store:dev-${env.BUILD_NUMBER}-py312  (Python 3.12)
+VERIFICATIONS EFFECTUEES :
+  Stage 1 - Checkout        : PASSED
+  Stage 2 - Setup           : PASSED
+  Stage 3 - Build Parallèle : PASSED (Python 3.11 & 3.12)
+  Stage 4 - Run Docker      : PASSED
+  Stage 5 - Smoke Test      : ${smokeResult}
+  Stage 6 - Archive         : PASSED
 
-RÉSULTATS DES STAGES :
-  Stage 1 - Checkout          : OK
-  Stage 2 - Setup             : OK
-  Stage 3 - Build Parallèle   : OK (Python 3.11 + 3.12)
-  Stage 4 - Run Docker        : OK
-  Stage 5 - Smoke Test        : ${smokeResult}
-  Stage 6 - Archive           : OK
+STATUT FINAL     : ${currentBuild.currentResult ?: 'SUCCESS'}
 
-RÉSULTAT GLOBAL : ${currentBuild.currentResult}
-
-ÉQUIPE : Famory TOURE & Abdoul TRAORE
-MODULE : Introduction au DevOps - 3LIG
-══════════════════════════════════════════════════════
+Binôme :
+  - Famory TOURE  (feature/famory-toure)
+  - Abdoul TRAORE (feature/abdoul-traore)
+Projet DevOps 3LIG - ISG Sousse
+==============================================================
 """
                     writeFile(file: 'artifacts/pipeline-report.txt', text: report)
                     echo report
                 }
 
-                // Archive tous les fichiers du dossier artifacts/
                 archiveArtifacts(
                     artifacts: 'artifacts/**',
                     fingerprint: true,
                     allowEmptyArchive: true
                 )
-
-                echo '[Archive] Artefacts archivés avec succès dans Jenkins.'
             }
         }
+    }
 
-    } // fin stages
-
-    // ── POST-ACTIONS ────────────────────────────────────────────
-    // Ces actions s'exécutent TOUJOURS après les stages, peu importe
-    // si le build a réussi ou échoué
+    // ── POST ACTIONS : NETTOYAGE SYSTÉMATIQUE ───────────────────
     post {
-
-        // Nettoyage systématique : supprime les conteneurs de test
-        // et les images temporaires pour libérer de l'espace disque
         always {
-            echo '╔══════════════════════════════════════╗'
-            echo '║  POST : Nettoyage des ressources     ║'
-            echo '╚══════════════════════════════════════╝'
-
+            echo '=== Nettoyage des conteneurs et ressources temporaires ==='
             bat '''
                 @echo off
-                set "CONTAINER=biwex-store-dev-test-%BUILD_NUMBER%"
+                set "DOCKER_CMD=%DOCKER_BIN%"
+                if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                echo [Cleanup] Suppression du conteneur de test...
-                "%DOCKER%" rm -f %CONTAINER% 2>NUL
-
-                echo [Cleanup] Suppression des images temporaires de ce build...
-                "%DOCKER%" rmi biwex-store:dev-%BUILD_NUMBER%-py311 2>NUL
-                "%DOCKER%" rmi biwex-store:dev-%BUILD_NUMBER%-py312 2>NUL
-
-                echo [Cleanup] Nettoyage termine.
+                "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
+                "%DOCKER_CMD%" rmi %IMAGE_BASE%:dev-%BUILD_NUMBER%-py311 2>NUL
+                "%DOCKER_CMD%" rmi %IMAGE_BASE%:dev-%BUILD_NUMBER%-py312 2>NUL
                 exit /b 0
             '''
         }
-
         success {
-            echo '✅ ════════════════════════════════════════════════════'
-            echo '✅  BIWEX STORE [DEV] : Pipeline exécuté avec SUCCÈS !'
-            echo '✅  Toutes les vérifications ont passé.'
-            echo '✅ ════════════════════════════════════════════════════'
+            echo 'BIWEX STORE [DEV] : Pipeline termine avec SUCCES.'
         }
-
         failure {
-            echo '❌ ════════════════════════════════════════════════════'
-            echo '❌  BIWEX STORE [DEV] : Le pipeline a ÉCHOUÉ.'
-            echo '❌  Vérifiez les logs des stages en rouge ci-dessus.'
-            echo '❌ ════════════════════════════════════════════════════'
-        }
-
-        unstable {
-            echo '⚠️  BIWEX STORE [DEV] : Pipeline INSTABLE. Vérifiez les tests.'
+            echo 'BIWEX STORE [DEV] : Echec du pipeline. Consultez les artefacts.'
         }
     }
 }
