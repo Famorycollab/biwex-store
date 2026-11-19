@@ -1,0 +1,67 @@
+# ============================================================
+#  FICHIER DOCKER COMPOSE — BIWEX STORE
+#  Auteurs : Abdoul TRAORE & Famory TOURE
+#  Branche : feature/abdoul-traore
+#  Audience : 3LIG - Introduction au DevOps (ISG Sousse)
+#
+#  NOTION DU COURS À EXPLIQUER À LA PROFESSEURE :
+#  Docker Compose permet de gérer une architecture multi-conteneurs
+#  (micro-services). Au lieu de taper plusieurs commandes "docker run",
+#  une seule commande suffit :
+#     docker compose up -d
+#  Cela démarre en même temps :
+#     1. Le site web Flask (Gunicorn)
+#     2. La base de données PostgreSQL de production
+# ============================================================
+
+version: '3.8'
+
+services:
+
+  # ── SERVICE 1 : L'APPLICATION WEB BIWEX STORE ─────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: 3.11
+    image: biwex-store:latest
+    container_name: biwex-store-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=biwex_compose_production_secret_key_2026!
+      # En mode compose, on peut se connecter a PostgreSQL ou SQLite
+      - DATABASE_URL=sqlite:///biwex.db
+      - WHATSAPP_NUMBER=21654360846
+    networks:
+      - biwex-network
+
+  # ── SERVICE 2 : BASE DE DONNÉES POSTGRESQL (PRODUCTION) ───
+  # En entreprise, on remplace SQLite par un vrai SGBD relationnel
+  db:
+    image: postgres:15-alpine
+    container_name: biwex-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: biwex_user
+      POSTGRES_PASSWORD: biwex_secure_password_2026
+      POSTGRES_DB: biwex_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - biwex-db-data:/var/lib/postgresql/data
+    networks:
+      - biwex-network
+
+# ── RÉSEAU PRIVÉ ET SÉCURISÉ ────────────────────────────────
+# Les conteneurs peuvent communiquer entre eux par leur nom (web <-> db)
+networks:
+  biwex-network:
+    driver: bridge
+
+# ── PERSISTANCE DES DONNÉES (VOLUMES) ────────────────────────
+# Permet de conserver les donnees des clients meme si le conteneur est redémarre
+volumes:
+  biwex-db-data:

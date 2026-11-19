@@ -1230,6 +1230,131 @@ def health_check():
 
 
 # ═══════════════════════════════════════════════════════════════
+#             API REST PUBLIQUE — BIWEX STORE
+#  Développée par : Abdoul TRAORE (Branche feature/abdoul-traore)
+#  Notion de cours : Interopérabilité des Systèmes d'Information
+#  Permet d'échanger des données en JSON avec des applications mobiles,
+#  des partenaires commerciaux ou des tableaux de bord décisionnels.
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/products', methods=['GET'])
+def api_get_products():
+    """
+    API REST : Retourne la liste des produits en format JSON.
+    Supporte les filtres : ?category=Smartphones&search=iphone
+    """
+    category = request.args.get('category', '').strip()
+    search = request.args.get('search', '').strip()
+
+    query = Product.query
+    if category:
+        query = query.filter_by(category=category)
+    if search:
+        query = query.filter(Product.name.ilike(f'%{search}%'))
+
+    products = query.all()
+    results = []
+    for p in products:
+        results.append({
+            'id': p.id,
+            'name': p.name,
+            'price': p.price,
+            'original_price': p.original_price,
+            'category': p.category,
+            'stock': p.stock,
+            'in_stock': p.stock > 0,
+            'rating': p.rating,
+            'review_count': p.review_count,
+            'image': p.image
+        })
+
+    return jsonify({
+        'status': 'success',
+        'count': len(results),
+        'products': results
+    }), 200
+
+
+@app.route('/api/products/<int:id>', methods=['GET'])
+def api_get_product_detail(id):
+    """
+    API REST : Retourne le détail complet d'un produit par son ID.
+    Exemple : /api/products/1
+    """
+    p = Product.query.get(id)
+    if not p:
+        return jsonify({
+            'status': 'error',
+            'message': f"Le produit avec l'identifiant #{id} n'existe pas."
+        }), 404
+
+    return jsonify({
+        'status': 'success',
+        'product': {
+            'id': p.id,
+            'name': p.name,
+            'price': p.price,
+            'original_price': p.original_price,
+            'description': p.description,
+            'category': p.category,
+            'stock': p.stock,
+            'rating': p.rating,
+            'review_count': p.review_count,
+            'image': p.image
+        }
+    }), 200
+
+
+@app.route('/api/categories', methods=['GET'])
+def api_get_categories():
+    """
+    API REST : Liste de toutes les catégories avec le nombre d'articles associés.
+    """
+    cats = db.session.query(Product.category).distinct().all()
+    category_list = []
+    for c in cats:
+        if c[0]:
+            count = Product.query.filter_by(category=c[0]).count()
+            category_list.append({
+                'category_name': c[0],
+                'product_count': count
+            })
+
+    return jsonify({
+        'status': 'success',
+        'total_categories': len(category_list),
+        'categories': category_list
+    }), 200
+
+
+@app.route('/api/stats', methods=['GET'])
+def api_get_store_stats():
+    """
+    API REST Décisionnelle : Indicateurs clés de performance (KPI) pour le management.
+    Idéal pour les étudiants en Informatique de Gestion (3LIG).
+    """
+    total_products = Product.query.count()
+    total_orders = Order.query.count()
+    total_users = User.query.count()
+    total_newsletter = Newsletter.query.count()
+
+    paid_orders = Order.query.filter(Order.status.in_(['Payée', 'Livrée'])).all()
+    chiffre_affaires = sum(o.total for o in paid_orders)
+
+    return jsonify({
+        'status': 'success',
+        'kpi': {
+            'chiffre_affaires_total_dt': round(chiffre_affaires, 3),
+            'commandes_total': total_orders,
+            'commandes_livrees_payees': len(paid_orders),
+            'clients_inscrits': total_users,
+            'produits_catalogue': total_products,
+            'abonnes_newsletter': total_newsletter
+        }
+    }), 200
+
+
+# ═══════════════════════════════════════════════════════════════
 #  POINT D'ENTRÉE — Démarrage du serveur de développement
 #
 #  En DÉVELOPPEMENT : python app.py → serveur Flask (debug=True)
