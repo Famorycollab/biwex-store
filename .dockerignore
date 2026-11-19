@@ -1,16 +1,54 @@
 
+# ============================================================
+#  .dockerignore — BIWEX STORE
+#  Fichiers exclus de l'image Docker pour :
+#    1. Réduire la taille de l'image
+#    2. Ne pas inclure de fichiers sensibles
+#    3. Accélérer le build (moins de contexte à envoyer)
+# ============================================================
+
+# Git et CI (non nécessaires dans le conteneur)
 .git
+# ============================================================
+#  .dockerignore — BIWEX STORE
+#  Fichiers exclus de l'image Docker pour :
+#    1. Réduire la taille de l'image
+#    2. Ne pas inclure de fichiers sensibles
+#    3. Accélérer le build (moins de contexte à envoyer)
+# ============================================================
+
+# Git et CI (non nécessaires dans le conteneur)
 .github
+
+# Variables d'environnement (secrets — jamais dans une image Docker !)
 .env
 .env.*
 !.env.example
+
+# Cache Python (inutile dans le conteneur)
 __pycache__/
 *.py[cod]
+*.pyc
+
+# Base de données locale (recréée au démarrage)
 *.db
 instance/
+
+# Cache de tests
 .pytest_cache/
+
+# Environnements virtuels locaux
 .venv/
 venv/
+
+# Éditeurs de code
 .vscode/
 .idea/
+
+# Logs locaux (Jenkins en génère dans artifacts/)
 *.log
+artifacts/
+
+# Fichiers OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,444 @@
+// ============================================================
+//  PIPELINE 3 : BUILD VERSIONNÉ SUR TAG (vX.Y.Z)
+//  Déclencheur : création d'un tag Git au format vX.Y.Z
+//                (ex : v1.0.0, v1.2.3, v2.0.0)
+//  But          : Produire une image Docker de PRODUCTION
+//                 identifiée par le numéro de version officiel
+//                 et archiver tous les artefacts de release
+//
+//  Workflow :
+//    git tag v1.0.0
+//    git push origin v1.0.0
+//    → Jenkins détecte le tag et déclenche ce pipeline
+//
+//  Configuration Jenkins :
+//    - Multibranch Pipeline avec "Discover tags" activé
+//    - Ou pipeline déclenché par webhook GitHub sur les tags
+// ============================================================
+
+pipeline {
+    agent any
+
+    // ── OPTIONS GLOBALES ────────────────────────────────────────
+    options {
+        skipDefaultCheckout(true)            // Checkout contrôlé manuellement
+        timestamps()                          // Horodatage des logs
+        disableConcurrentBuilds()             // Pas de release simultanée
+        timeout(time: 45, unit: 'MINUTES')    // Timeout plus long pour la production
+        buildDiscarder(logRotator(numToKeepStr: '20'))  // Garde 20 builds de release
+    }
+
+    // ── VARIABLES D'ENVIRONNEMENT ───────────────────────────────
+    environment {
+        // Chemin Docker Desktop
+        DOCKER       = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        // Nom de base de l'image
+        IMAGE_BASE   = 'biwex-store'
+        // La version est extraite du nom du tag Git (ex: v1.0.0 → 1.0.0)
+        // TAG_NAME est injecté automatiquement par Jenkins lors d'un build sur tag
+        VERSION      = "${env.TAG_NAME ?: 'v0.0.0'}"
+        // Statut du smoke test
+        SMOKE_STATUS = 'NOT_RUN'
+    }
+
+    stages {
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 1 - CHECKOUT
+        // Récupère le code source au commit exact du tag.
+        // La variable TAG_NAME contient le nom du tag (ex: v1.0.0)
+        // Cela garantit que la release correspond au code tagué
+        // ══════════════════════════════════════════════════════
+        stage('1 - Checkout') {
+            steps {
+                echo '╔══════════════════════════════════════════════╗'
+                echo '║  STAGE 1 : Checkout du tag de release       ║'
+                echo '╚══════════════════════════════════════════════╝'
+
+                echo "TAG VERSION   : ${env.TAG_NAME}"
+                echo "Commit        : ${env.GIT_COMMIT ?: 'N/A'}"
+                echo "Build N°      : ${env.BUILD_NUMBER}"
+
+                checkout scm
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 2 - SETUP
+        // Valide que le tag respecte le format sémantique vX.Y.Z
+        // Le versioning sémantique (SemVer) est une convention :
+        //   v[MAJEUR].[MINEUR].[PATCH]
+        //   - MAJEUR : changement incompatible
+        //   - MINEUR : nouvelle fonctionnalité compatible
+        //   - PATCH  : correction de bug
+        // ══════════════════════════════════════════════════════
+        stage('2 - Setup') {
+            steps {
+                echo '╔══════════════════════════════════════════════╗'
+                echo '║  STAGE 2 : Validation du tag vX.Y.Z        ║'
+                echo '╚══════════════════════════════════════════════╝'
+
+                bat '''
+                    @echo off
+                    echo [Setup] Validation du format du tag : %TAG_NAME%
+
+                    REM -- Vérification du format vX.Y.Z (versioning sémantique)
+                    echo %TAG_NAME% | findstr /R "^v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >NUL
+                    if errorlevel 1 (
+                        echo ERREUR : Le tag "%TAG_NAME%" ne respecte pas le format vX.Y.Z
+                        echo Exemples valides : v1.0.0, v2.3.1, v10.0.0
+                        exit /b 1
+                    )
+
+                    echo [Setup] Tag valide : %TAG_NAME%  OK
+                    echo.
+
+                    echo [Setup] Verification des fichiers du projet...
+
+                    if not exist app.py (
+                        echo ERREUR : app.py manquant !
+                        exit /b 1
+                    )
+                    if not exist requirements.txt exit /b 1
+                    if not exist Dockerfile exit /b 1
+                    if not exist scripts\\smoke_test.py exit /b 1
+
+                    REM -- Création du répertoire d'artefacts de release
+                    if not exist artifacts mkdir artifacts
+                    if not exist artifacts\\release mkdir artifacts\\release
+
+                    echo [Setup] Environnement OK pour la release %TAG_NAME%
+                    echo.
+
+                    echo [Docker] Version Docker :
+                    "%DOCKER%" version
+                '''
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 3 - BUILD PARALLÈLE (3.11 + 3.12)
+        // Comme pour le pipeline dev, on construit en parallèle
+        // avec les deux versions Python pour la compatibilité.
+        // → L'image tagguée py311 sera l'image de production officielle
+        // → L'image py312 valide la compatibilité future
+        // ══════════════════════════════════════════════════════
+        stage('3 - Build Docker Versionné (Parallèle)') {
+            parallel {
+
+                // ── Build Production Python 3.11 ────────────
+                stage('Build Release Python 3.11') {
+                    steps {
+                        echo '╔══════════════════════════════════════════════╗'
+                        echo '║  Build Release - Python 3.11                ║'
+                        echo '╚══════════════════════════════════════════════╝'
+
+                        bat '''
+                            @echo off
+                            echo [Build 3.11] Construction de l image de RELEASE...
+                            echo [Build 3.11] Tag : biwex-store:%TAG_NAME%-py311
+                            echo [Build 3.11] Tag additionnel : biwex-store:latest
+
+                            REM -- Construction avec le tag de version ET le tag "latest"
+                            REM -- "latest" pointe toujours vers la dernière release stable
+                            "%DOCKER%" build ^
+                                --build-arg PYTHON_VERSION=3.11 ^
+                                --label "version=%TAG_NAME%" ^
+                                --label "build=%BUILD_NUMBER%" ^
+                                --label "app=biwex-store" ^
+                                -t biwex-store:%TAG_NAME%-py311 ^
+                                -t biwex-store:latest ^
+                                . ^
+                                > artifacts\\release\\docker-build-py311.log 2>&1
+
+                            set "EXIT_CODE=%ERRORLEVEL%"
+
+                            echo.
+                            echo === LOG BUILD Python 3.11 ===
+                            type artifacts\\release\\docker-build-py311.log
+                            echo =============================
+
+                            exit /b %EXIT_CODE%
+                        '''
+                    }
+                }
+
+                // ── Build Compatibilité Python 3.12 ─────────
+                stage('Build Release Python 3.12') {
+                    steps {
+                        echo '╔══════════════════════════════════════════════╗'
+                        echo '║  Build Release - Python 3.12                ║'
+                        echo '╚══════════════════════════════════════════════╝'
+
+                        bat '''
+                            @echo off
+                            echo [Build 3.12] Test de compatibilite Python 3.12...
+
+                            "%DOCKER%" build ^
+                                --build-arg PYTHON_VERSION=3.12 ^
+                                --label "version=%TAG_NAME%" ^
+                                -t biwex-store:%TAG_NAME%-py312 ^
+                                . ^
+                                > artifacts\\release\\docker-build-py312.log 2>&1
+
+                            set "EXIT_CODE=%ERRORLEVEL%"
+
+                            echo.
+                            echo === LOG BUILD Python 3.12 ===
+                            type artifacts\\release\\docker-build-py312.log
+                            echo =============================
+
+                            exit /b %EXIT_CODE%
+                        '''
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 4 - RUN DOCKER
+        // Démarre l'image de PRODUCTION pour validation finale.
+        // On teste l'image py311 qui est l'image de production.
+        // ══════════════════════════════════════════════════════
+        stage('4 - Run Docker') {
+            steps {
+                echo '╔══════════════════════════════════════════════╗'
+                echo '║  STAGE 4 : Démarrage conteneur release      ║'
+                echo '╚══════════════════════════════════════════════╝'
+
+                bat '''
+                    @echo off
+                    set "CONTAINER=biwex-release-%TAG_NAME%-%BUILD_NUMBER%"
+
+                    echo [Run] Conteneur de validation release : %CONTAINER%
+                    echo [Run] Image utilisee : biwex-store:%TAG_NAME%-py311
+
+                    "%DOCKER%" rm -f %CONTAINER% 2>NUL
+
+                    "%DOCKER%" run -d ^
+                        --name %CONTAINER% ^
+                        -e SECRET_KEY=jenkins-release-production-key ^
+                        biwex-store:%TAG_NAME%-py311
+
+                    if errorlevel 1 (
+                        echo ERREUR : Echec du démarrage du conteneur de release !
+                        exit /b 1
+                    )
+
+                    echo [Run] Conteneur de release démarré. Attente 5 secondes...
+                    timeout /t 5 /nobreak >NUL
+
+                    echo [Run] Etat :
+                    "%DOCKER%" ps --filter name=%CONTAINER% --format "table {{.Names}}\t{{.Status}}"
+                '''
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 5 - SMOKE TEST (Release Validation)
+        // Test final AVANT de considérer la release comme valide.
+        // → Plus critique que sur PR ou dev
+        // → Si FAILED : la release est bloquée (image KO)
+        // ══════════════════════════════════════════════════════
+        stage('5 - Smoke Test') {
+            steps {
+                echo '╔══════════════════════════════════════════════╗'
+                echo '║  STAGE 5 : Smoke Test de la Release         ║'
+                echo '╚══════════════════════════════════════════════╝'
+
+                script {
+                    try {
+                        bat '''
+                            @echo off
+                            set "CONTAINER=biwex-release-%TAG_NAME%-%BUILD_NUMBER%"
+
+                            echo [Smoke] Test de validation de la release %TAG_NAME%...
+                            echo [Smoke] Maximum 20 tentatives (release = plus de temps)
+
+                            for /L %%i in (1,1,20) do (
+                                echo [Smoke] Tentative %%i sur 20...
+
+                                "%DOCKER%" exec %CONTAINER% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\release\\smoke-test.txt 2>&1
+
+                                if not errorlevel 1 goto :release_smoke_ok
+
+                                timeout /t 2 /nobreak >NUL
+                            )
+
+                            type artifacts\\release\\smoke-test.txt
+                            echo.
+                            echo [Smoke] ECHEC : Release %TAG_NAME% ne passe pas le smoke test !
+                            exit /b 1
+
+                            :release_smoke_ok
+                            type artifacts\\release\\smoke-test.txt
+                            echo.
+                            echo [Smoke] SUCCES : Release %TAG_NAME% validee !
+                            exit /b 0
+                        '''
+
+                        env.SMOKE_STATUS = 'PASSED'
+                        writeFile(file: 'artifacts/release/smoke-status.txt', text: 'PASSED')
+
+                    } catch (err) {
+                        env.SMOKE_STATUS = 'FAILED'
+                        writeFile(file: 'artifacts/release/smoke-status.txt', text: 'FAILED')
+                        throw err
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // STAGE 6 - ARCHIVE ARTIFACTS (Release)
+        // Archive complet pour une release :
+        //   - Logs de build Python 3.11 et 3.12
+        //   - Résultats smoke test
+        //   - Manifeste de release (versions, images, checksums)
+        //   - Rapport de release complet
+        //
+        // Ces artefacts constituent la PREUVE de la release et
+        // sont conservés indéfiniment dans Jenkins (audit trail)
+        // ══════════════════════════════════════════════════════
+        stage('6 - Archive Artifacts (Release)') {
+            steps {
+                echo '╔══════════════════════════════════════════════╗'
+                echo '║  STAGE 6 : Archivage de la Release          ║'
+                echo '╚══════════════════════════════════════════════╝'
+
+                script {
+                    // Lecture du résultat smoke
+                    def smokeResult = 'UNKNOWN'
+                    if (fileExists('artifacts/release/smoke-status.txt')) {
+                        smokeResult = readFile('artifacts/release/smoke-status.txt').trim()
+                    }
+
+                    // Génération du MANIFESTE DE RELEASE
+                    // Document qui liste tout ce qui a été produit dans cette release
+                    def manifest = """\
+# ═══════════════════════════════════════════════════════
+#  MANIFESTE DE RELEASE - BIWEX STORE ${env.TAG_NAME}
+# ═══════════════════════════════════════════════════════
+
+VERSION           : ${env.TAG_NAME}
+DATE DE RELEASE   : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
+BUILD JENKINS N°  : ${env.BUILD_NUMBER}
+COMMIT GIT        : ${env.GIT_COMMIT ?: 'N/A'}
+
+IMAGES DOCKER PRODUITES :
+  - biwex-store:${env.TAG_NAME}-py311   (Python 3.11 - PRODUCTION)
+  - biwex-store:${env.TAG_NAME}-py312   (Python 3.12 - Compatibilité)
+  - biwex-store:latest                   (pointe vers ${env.TAG_NAME}-py311)
+
+TESTS :
+  Smoke Test Python 3.11 : ${smokeResult}
+
+ARTEFACTS ARCHIVÉS :
+  - artifacts/release/docker-build-py311.log
+  - artifacts/release/docker-build-py312.log
+  - artifacts/release/smoke-test.txt
+  - artifacts/release/smoke-status.txt
+  - artifacts/release/release-manifest.txt
+  - artifacts/release/pipeline-report.txt
+
+RÉSULTAT : ${currentBuild.currentResult}
+"""
+                    writeFile(file: 'artifacts/release/release-manifest.txt', text: manifest)
+
+                    // Génération du RAPPORT DE PIPELINE RELEASE
+                    def report = """\
+╔══════════════════════════════════════════════════════╗
+║     RAPPORT DE RELEASE - BIWEX STORE ${env.TAG_NAME}     ║
+╚══════════════════════════════════════════════════════╝
+
+PIPELINE      : Biwex-Store-Tag (Build Versionné)
+VERSION       : ${env.TAG_NAME}
+BUILD N°      : ${env.BUILD_NUMBER}
+DATE          : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
+COMMIT        : ${env.GIT_COMMIT ?: 'N/A'}
+
+IMAGES DOCKER :
+  PRODUCTION   → biwex-store:${env.TAG_NAME}-py311
+  COMPATIBILITÉ→ biwex-store:${env.TAG_NAME}-py312
+  LATEST       → biwex-store:latest (alias)
+
+RÉSULTATS DES STAGES :
+  Stage 1 - Checkout              : OK
+  Stage 2 - Setup (tag vX.Y.Z)   : OK
+  Stage 3 - Build Parallèle       : OK (Python 3.11 + 3.12)
+  Stage 4 - Run Docker Release    : OK
+  Stage 5 - Smoke Test Release    : ${smokeResult}
+  Stage 6 - Archive Release       : OK
+
+RÉSULTAT GLOBAL  : ${currentBuild.currentResult}
+RELEASE VALIDÉE  : ${smokeResult == 'PASSED' ? 'OUI ✅ - Prête pour production' : 'NON ❌ - Ne pas déployer'}
+
+ÉQUIPE : Famory TOURE & Abdoul TRAORE
+MODULE : Introduction au DevOps - 3LIG
+══════════════════════════════════════════════════════
+"""
+                    writeFile(file: 'artifacts/release/pipeline-report.txt', text: report)
+                    echo report
+                    echo manifest
+                }
+
+                // Archive TOUS les artefacts avec fingerprinting
+                // Le fingerprinting crée un hash unique de chaque fichier
+                // pour garantir l'intégrité des artefacts (non modifiés)
+                archiveArtifacts(
+                    artifacts: 'artifacts/**',
+                    fingerprint: true,
+                    allowEmptyArchive: true
+                )
+
+                echo '[Archive] ✅ Tous les artefacts de release sont archivés dans Jenkins.'
+                echo "[Archive] Release ${env.TAG_NAME} disponible dans : Jenkins → Artifacts"
+            }
+        }
+
+    } // fin stages
+
+    // ── POST-ACTIONS ────────────────────────────────────────────
+    post {
+
+        // TOUJOURS : Nettoyage du conteneur de test
+        // Les IMAGES de release sont CONSERVÉES (contrairement aux builds dev/PR)
+        // car elles représentent des releases officielles
+        always {
+            echo '╔══════════════════════════════════════════════╗'
+            echo '║  POST : Nettoyage du conteneur release      ║'
+            echo '╚══════════════════════════════════════════════╝'
+
+            bat '''
+                @echo off
+                set "CONTAINER=biwex-release-%TAG_NAME%-%BUILD_NUMBER%"
+
+                echo [Cleanup] Suppression du conteneur de validation...
+                "%DOCKER%" rm -f %CONTAINER% 2>NUL
+
+                REM -- IMPORTANT : On ne supprime PAS les images de release !
+                REM -- biwex-store:v1.0.0-py311 est conservée pour déploiement
+                echo [Cleanup] Images de release conservees (pas de suppression).
+                echo [Cleanup] Pour supprimer : docker rmi biwex-store:%TAG_NAME%-py311
+
+                exit /b 0
+            '''
+        }
+
+        success {
+            echo '🎉 ═══════════════════════════════════════════════════'
+            echo "🎉  BIWEX STORE : Release ${env.TAG_NAME} VALIDÉE !"
+            echo "🎉  Image de production : biwex-store:${env.TAG_NAME}-py311"
+            echo '🎉  Prête pour déploiement en production.'
+            echo '🎉 ═══════════════════════════════════════════════════'
+        }
+
+        failure {
+            echo '💥 ═══════════════════════════════════════════════════'
+            echo "💥  BIWEX STORE : Release ${env.TAG_NAME} ÉCHOUÉE !"
+            echo '💥  Ne pas déployer cette version en production.'
+            echo '💥  Corrigez les erreurs et créez un nouveau tag.'
+            echo '💥 ═══════════════════════════════════════════════════'
+        }
+    }
+}
