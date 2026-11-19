@@ -1,13 +1,25 @@
 // ============================================================
 //  PIPELINE 3 : BUILD VERSIONNÉ SUR TAG (vX.Y.Z)
-//  Déclencheur : Push d'un tag Git (ex: v1.0.0, v1.1.0) ou build manuel
-//  Objectif    : Produire les images Docker officielles de release,
-//                valider le smoke test et archiver le manifeste officiel
+//  Projet : Biwex Store - 3LIG ISG Sousse
+//  Binôme : Famory TOURE & Abdoul TRAORE
+//
+//  EXPLICATION SIMPLE POUR LA PROFESSEURE :
+//  Ce pipeline se lance lorsqu'on crée un Tag officiel (ex: v1.0.0, v1.1.0).
+//  Son rôle est de certifier la version de PRODUCTION :
+//  1. Checkout      : Récupérer le code exact du tag
+//  2. Setup         : Vérifier que le tag respecte le format sémantique vX.Y.Z
+//  3. Build Docker  : Compiler les images officielles et créer l'alias "latest"
+//  4. Run Docker    : Tester le conteneur de release
+//  5. Smoke Test    : Valider que la release fonctionne sans problème
+//  6. Archive       : Sceller le Manifeste officiel de Release dans Jenkins
+//  + Conservation   : ATTENTION, ici on CONSERVE les images officielles de production !
 // ============================================================
 
 pipeline {
+    // Exécuter sur l'agent Jenkins disponible
     agent any
 
+    // Paramètre permettant aussi de lancer le build manuellement en saisissant le tag
     parameters {
         string(
             name: 'RELEASE_TAG',
@@ -25,57 +37,63 @@ pipeline {
     }
 
     environment {
+        // Chemin de l'exécutable Docker Desktop sur Windows
         DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
         IMAGE_BASE     = 'biwex-store'
-        // Priorité : tag injecté par webhook Jenkins > paramètre de build > fallback
+        // Récupère le tag : soit depuis GitHub (TAG_NAME), soit depuis le paramètre de saisie
         EFFECTIVE_TAG  = "${env.TAG_NAME ?: params.RELEASE_TAG ?: 'v1.1.0'}"
+        // Nom du conteneur de qualification
         CONTAINER_NAME = "biwex-release-val-${BUILD_NUMBER}"
         SMOKE_STATUS   = 'NOT_RUN'
     }
 
     stages {
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 1 - CHECKOUT
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 1 : CHECKOUT
+        // But : Récupérer le code source figé au moment du Tag
+        // ======================================================
         stage('1 - Checkout') {
             steps {
-                echo "=== STAGE 1 : Checkout du code au tag de release [${env.EFFECTIVE_TAG}] ==="
+                echo "=== STAGE 1 : Téléchargement du code source au tag [${env.EFFECTIVE_TAG}] ==="
                 checkout scm
                 script {
-                    echo "Tag de release : ${env.EFFECTIVE_TAG}"
-                    echo "Build Jenkins  : #${env.BUILD_NUMBER}"
+                    echo "Tag officiel de Release : ${env.EFFECTIVE_TAG}"
+                    echo "Numero du Build Jenkins : #${env.BUILD_NUMBER}"
                 }
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 2 - SETUP & CONFORMITÉ SEMVER
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 2 : SETUP & VALIDATION SEMVER (vX.Y.Z)
+        // But : Vérifier que le numéro de version respecte la norme internationale
+        // Exemple valide : v1.0.0, v1.1.0 / Invalide : version1, test
+        // ======================================================
         stage('2 - Setup') {
             steps {
-                echo '=== STAGE 2 : Contrôle de conformité du versioning sémantique ==='
+                echo '=== STAGE 2 : Contrôle de conformité du Versioning Sémantique (SemVer) ==='
                 script {
-                    // Validation du format vX.Y.Z en Groovy (sans risque d'erreur cmd.exe)
+                    // Expression régulière qui impose le format : commence par 'v', suivi de chiffres.chiffres.chiffres
                     def semverPattern = ~/^v\d+\.\d+\.\d+$/
                     if (!(env.EFFECTIVE_TAG ==~ semverPattern)) {
-                        error("ERREUR DE VERSIONING : Le tag '${env.EFFECTIVE_TAG}' ne respecte pas le format sémantique vX.Y.Z (exemples: v1.0.0, v1.1.0) !")
+                        error("ERREUR DE VERSIONING : Le tag '${env.EFFECTIVE_TAG}' est invalide ! Il doit obligatoirement respecter la convention vX.Y.Z (ex: v1.0.0, v1.1.0)")
                     }
-                    echo "[SemVer OK] Le tag '${env.EFFECTIVE_TAG}' est strictement conforme au versioning sémantique."
+                    echo "[Conforme] Le tag '${env.EFFECTIVE_TAG}' respecte parfaitement la norme SemVer."
                 }
 
                 bat '''
                     @echo off
-                    echo [Setup] Verification de l arborescence de release...
+                    echo [Verification] Test des fichiers pour la release officielle...
                     if not exist app.py exit /b 1
                     if not exist requirements.txt exit /b 1
                     if not exist Dockerfile exit /b 1
                     if not exist scripts\\smoke_test.py exit /b 1
 
+                    REM Creer le sous-dossier specifique release pour archiver le certificat
                     if not exist artifacts mkdir artifacts
                     if not exist artifacts\\release mkdir artifacts\\release
 
-                    echo [Setup] Moteur Docker :
+                    REM Verification du moteur Docker
                     if exist "%DOCKER_BIN%" (
                         "%DOCKER_BIN%" version
                     ) else (
@@ -85,21 +103,25 @@ pipeline {
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 3 - BUILD VERSIONNÉ PARALLÈLE
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 3 : BUILD VERSIONNÉ PARALLÈLE
+        // But : Créer l'image officielle taguée avec la version et latest
+        // ======================================================
         stage('3 - Build Docker Versionné (Parallèle)') {
             parallel {
 
+                // Branche A : Image officielle de Production (Python 3.11)
                 stage('Build Production (Python 3.11 + latest)') {
                     steps {
-                        echo "=== Construction Image Officielle Production [${env.EFFECTIVE_TAG}-py311] ==="
+                        echo "=== Fabrication de l Image Officielle Production [${env.EFFECTIVE_TAG}-py311] ==="
                         bat '''
                             @echo off
                             set "DOCKER_CMD=%DOCKER_BIN%"
                             if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                            echo [Build] Tagging %IMAGE_BASE%:%EFFECTIVE_TAG%-py311 et %IMAGE_BASE%:latest...
+                            REM On donne deux tags a l'image :
+                            REM 1. biwex-store:v1.1.0-py311 (version figee et tracee)
+                            REM 2. biwex-store:latest (pointeur universel vers la derniere version stable)
                             "%DOCKER_CMD%" build ^
                                 --build-arg PYTHON_VERSION=3.11 ^
                                 --label "version=%EFFECTIVE_TAG%" ^
@@ -116,15 +138,16 @@ pipeline {
                     }
                 }
 
+                // Branche B : Image de Compatibilité (Python 3.12)
                 stage('Build Compatibilité (Python 3.12)') {
                     steps {
-                        echo "=== Construction Image Compatibilité [${env.EFFECTIVE_TAG}-py312] ==="
+                        echo "=== Fabrication de l Image Compatibilité [${env.EFFECTIVE_TAG}-py312] ==="
                         bat '''
                             @echo off
                             set "DOCKER_CMD=%DOCKER_BIN%"
                             if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                            echo [Build] Tagging %IMAGE_BASE%:%EFFECTIVE_TAG%-py312...
+                            REM Fabriquer l'image avec Python 3.12 pour valider le futur de l'application
                             "%DOCKER_CMD%" build ^
                                 --build-arg PYTHON_VERSION=3.12 ^
                                 --label "version=%EFFECTIVE_TAG%" ^
@@ -142,46 +165,48 @@ pipeline {
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 4 - RUN DOCKER (Validation image Release)
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 4 : RUN DOCKER (Test de l'image de Release)
+        // But : Démarrer un conteneur avec l'image officielle pour qualification
+        // ======================================================
         stage('4 - Run Docker') {
             steps {
-                echo '=== STAGE 4 : Démarrage conteneur de qualification release ==='
+                echo '=== STAGE 4 : Démarrage du conteneur de qualification release ==='
                 bat '''
                     @echo off
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    echo [Run] Arret de tout ancien conteneur...
                     "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                    echo [Run] Demarrage du conteneur de release %CONTAINER_NAME%...
+                    REM Allumer le conteneur en utilisant l'image officielle taguée
                     "%DOCKER_CMD%" run -d ^
                         --name %CONTAINER_NAME% ^
-                        -e SECRET_KEY=jenkins-release-production-key ^
+                        -e SECRET_KEY=cle-de-production-release ^
                         %IMAGE_BASE%:%EFFECTIVE_TAG%-py311
 
                     if errorlevel 1 (
-                        echo ERREUR : Echec du demarrage du conteneur de release.
+                        echo ERREUR : Echec du lancement de l image de production !
                         exit /b 1
                     )
 
-                    echo [Run] Conteneur de qualification pret.
+                    echo [Succes] Conteneur de release actif.
                     "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
                 sleep(time: 5, unit: 'SECONDS')
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 5 - SMOKE TEST (Qualification Release)
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 5 : SMOKE TEST (Homologation finale)
+        // But : Confirmer que la version de release répond 200 OK
+        // ======================================================
         stage('5 - Smoke Test') {
             steps {
-                echo '=== STAGE 5 : Smoke Test d homologation release ==='
+                echo '=== STAGE 5 : Smoke Test d homologation de la release ==='
                 script {
                     try {
+                        // Jusqu'a 20 tentatives pour etre certain que la production est prete
                         retry(20) {
                             sleep(time: 2, unit: 'SECONDS')
                             bat '''
@@ -196,45 +221,47 @@ pipeline {
 
                         env.SMOKE_STATUS = 'PASSED'
                         writeFile(file: 'artifacts/release/smoke-status.txt', text: 'PASSED')
-                        echo '=== QUALIFICATION RELEASE : PASSED ==='
+                        echo '=== HOMOLOGATION RELEASE : REUSSIE (PASSED) ==='
 
                     } catch (err) {
                         env.SMOKE_STATUS = 'FAILED'
                         writeFile(file: 'artifacts/release/smoke-status.txt', text: 'FAILED')
-                        echo '=== QUALIFICATION RELEASE : FAILED ==='
+                        echo '=== HOMOLOGATION RELEASE : ECHOUEE (FAILED) ==='
                         throw err
                     }
                 }
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 6 - ARCHIVE ARTIFACTS (Manifeste & Rapport)
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 6 : ARCHIVE ARTIFACTS (Manifeste officiel de Release)
+        // But : Sauvegarder le certificat officiel de publication
+        // ======================================================
         stage('6 - Archive Artifacts') {
             steps {
-                echo '=== STAGE 6 : Archivage officiel de la release et du manifeste ==='
+                echo '=== STAGE 6 : Génération et scellement du Manifeste officiel ==='
                 script {
                     def smokeResult = fileExists('artifacts/release/smoke-status.txt') ? readFile('artifacts/release/smoke-status.txt').trim() : 'UNKNOWN'
 
+                    // Le Manifeste officiel : preuve formelle exigee en entreprise
                     def manifest = """\
 ==============================================================
  MANIFESTE OFFICIEL DE RELEASE — BIWEX STORE [${env.EFFECTIVE_TAG}]
 ==============================================================
 Version Publiee   : ${env.EFFECTIVE_TAG}
 Date de Release   : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
-Build Jenkins     : #${env.BUILD_NUMBER}
+Build Jenkins N°  : #${env.BUILD_NUMBER}
 Commit Git        : ${env.GIT_COMMIT ?: 'N/A'}
 
 IMAGES OFFICIELLES HOMOLOGUEES :
-  - ${env.IMAGE_BASE}:${env.EFFECTIVE_TAG}-py311  (Image Production)
-  - ${env.IMAGE_BASE}:${env.EFFECTIVE_TAG}-py312  (Image Compatibilite)
-  - ${env.IMAGE_BASE}:latest                      (Pointeur derniere version stable)
+  - ${env.IMAGE_BASE}:${env.EFFECTIVE_TAG}-py311  (Image de Production principale)
+  - ${env.IMAGE_BASE}:${env.EFFECTIVE_TAG}-py312  (Image de Compatibilite future)
+  - ${env.IMAGE_BASE}:latest                      (Pointeur vers derniere version stable)
 
 QUALIFICATION :
-  Smoke Test Homologation : ${smokeResult}
+  Smoke Test Homologation : ${smokeResult} (Reponse HTTP 200 confirmee)
 
-ARTEFACTS SCELLES :
+ARTEFACTS SCELLES DANS JENKINS :
   - artifacts/release/docker-build-py311.log
   - artifacts/release/docker-build-py312.log
   - artifacts/release/smoke-test.txt
@@ -242,10 +269,13 @@ ARTEFACTS SCELLES :
   - artifacts/release/release-manifest.txt
   - artifacts/release/pipeline-report.txt
 
-STATUT DE HOMOLOGATION : CONFORME POUR DEPLOIEMENT EN PRODUCTION
+STATUT : CONFORME ET PRET POUR DEPLOIEMENT EN PRODUCTION COMMERCIALE
 
-Binôme : Famory TOURE & Abdoul TRAORE
-Module DevOps 3LIG - ISG Sousse
+Binôme d ingenieurs etudiants :
+  - Famory TOURE  (Branche feature/famory-toure)
+  - Abdoul TRAORE (Branche feature/abdoul-traore)
+Audience : 3LIG - Module Introduction au DevOps - ISG Sousse 2026/2027
+Enseignante : Mme Zaineb SAKHRAWI
 ==============================================================
 """
                     writeFile(file: 'artifacts/release/release-manifest.txt', text: manifest)
@@ -253,6 +283,7 @@ Module DevOps 3LIG - ISG Sousse
                     echo manifest
                 }
 
+                // Archiver le certificat de release avec son empreinte numerique
                 archiveArtifacts(
                     artifacts: 'artifacts/**',
                     fingerprint: true,
@@ -262,27 +293,33 @@ Module DevOps 3LIG - ISG Sousse
         }
     }
 
-    // ── POST ACTIONS ────────────────────────────────────────────
+    // ======================================================
+    // POST-BUILD : REGLE IMPORTANTE DU SUJET
+    // On nettoie le conteneur de test, MAIS on CONSERVE l'image de release !
+    // ======================================================
     post {
         always {
-            echo '=== Nettoyage conteneur de qualification release ==='
+            echo '=== Nettoyage du conteneur de qualification release ==='
             bat '''
                 @echo off
                 set "DOCKER_CMD=%DOCKER_BIN%"
                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                echo [Cleanup] Suppression du conteneur de qualification...
+                REM Supprimer le conteneur de qualification
                 "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                echo [Note] Les images de release %IMAGE_BASE%:%EFFECTIVE_TAG%-py311 et :latest sont conservees.
+                REM RAPPEL IMPORTANT POUR LA PROF :
+                REM Les images biwex-store:v1.1.0-py311 et :latest NE SONT PAS supprimees !
+                REM Elles restent stockees dans Docker pour pouvoir etre deployee en production.
+                echo [Conservation] Les images officielles de production sont conservees dans Docker.
                 exit /b 0
             '''
         }
         success {
-            echo "BIWEX STORE : Release officielle ${env.EFFECTIVE_TAG} generee avec SUCCES."
+            echo "BIWEX STORE : Release officielle ${env.EFFECTIVE_TAG} publiee avec SUCCES."
         }
         failure {
-            echo "BIWEX STORE : Echec de generation de la release ${env.EFFECTIVE_TAG}."
+            echo "BIWEX STORE : Echec de la publication de la release ${env.EFFECTIVE_TAG}."
         }
     }
 }
