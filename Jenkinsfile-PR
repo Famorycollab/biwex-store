@@ -1,88 +1,112 @@
 // ============================================================
 //  PIPELINE 1 : BUILD & SMOKE SUR PULL REQUEST (PR)
-//  Déclencheur : Ouverture ou mise à jour d'une PR vers "dev"
-//  Objectif    : Valider que le code de la branche feature compile
-//                et passe le smoke test avant fusion dans dev
+//  Projet : Biwex Store - 3LIG ISG Sousse
+//  Binôme : Famory TOURE & Abdoul TRAORE
+//
+//  EXPLICATION SIMPLE POUR LA PROFESSEURE :
+//  Ce pipeline sert de contrôle de sécurité à l'entrée.
+//  Dès qu'un développeur propose une Pull Request vers "dev",
+//  Jenkins teste le code automatiquement avant d'autoriser la fusion :
+//  1. Checkout      : Récupérer la branche proposée par le développeur
+//  2. Setup         : Vérifier que la PR cible bien "dev" (et pas "main" directement)
+//  3. Build Docker  : Compiler l'image de test de la PR
+//  4. Run Docker    : Lancer l'application dans un conteneur de test
+//  5. Smoke Test    : Tester si le site répond HTTP 200
+//  6. Archive       : Archiver les preuves et décider si le merge est autorisé
 // ============================================================
 
 pipeline {
+    // Exécuter sur l'agent Jenkins disponible
     agent any
 
     options {
+        // Checkout manuel à l'étape 1
         skipDefaultCheckout(true)
+        // Heure affichée sur chaque ligne de log
         timestamps()
+        // Pas de builds concurrents sur la même PR
         disableConcurrentBuilds()
+        // Arrêt automatique si le test bloque plus de 30 minutes
         timeout(time: 30, unit: 'MINUTES')
+        // Historique des 10 derniers builds conservé
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     environment {
+        // Chemin absolu de Docker Desktop sur Windows
         DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        // Nom du projet
         IMAGE_NAME     = 'biwex-store'
+        // Nom unique du conteneur de test pour cette PR
         CONTAINER_NAME = "biwex-pr-test-${BUILD_NUMBER}"
+        // Statut du test
         SMOKE_STATUS   = 'NOT_RUN'
     }
 
     stages {
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 1 - CHECKOUT
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 1 : CHECKOUT
+        // But : Récupérer le code de la branche proposée dans la PR
+        // ======================================================
         stage('1 - Checkout') {
             steps {
-                echo '=== STAGE 1 : Checkout du code de la Pull Request ==='
+                echo '=== STAGE 1 : Téléchargement du code de la Pull Request ==='
                 checkout scm
                 script {
-                    echo "PR ID         : ${env.CHANGE_ID ?: 'Manuelle/Test'}"
-                    echo "Branche source: ${env.CHANGE_BRANCH ?: env.BRANCH_NAME ?: 'feature'}"
-                    echo "Branche cible : ${env.CHANGE_TARGET ?: 'dev'}"
+                    echo "Numero de PR    : #${env.CHANGE_ID ?: 'Test Manuel'}"
+                    echo "Branche source  : ${env.CHANGE_BRANCH ?: env.BRANCH_NAME ?: 'feature'}"
+                    echo "Branche cible   : ${env.CHANGE_TARGET ?: 'dev'}"
                 }
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 2 - SETUP & VALIDATION CIBLE
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 2 : SETUP & VALIDATION DE LA BRANCHE CIBLE
+        // But : Règle DevOps : interdire toute PR directement vers main !
+        // Une PR doit OBLIGATOIREMENT cibler "dev".
+        // ======================================================
         stage('2 - Setup') {
             steps {
-                echo '=== STAGE 2 : Validation de la Pull Request et setup ==='
+                echo '=== STAGE 2 : Vérification de la cible de la PR et des fichiers ==='
                 script {
-                    // Si le build est déclenché par une vraie PR GitHub
+                    // Si le build vient d'une vraie Pull Request GitHub
                     if (env.CHANGE_ID) {
-                        echo "[PR Check] Validation de la cible de la PR : #${env.CHANGE_ID}"
+                        echo "[Contrôle] Verification de la branche cible pour la PR #${env.CHANGE_ID}..."
+                        // Si la cible n'est pas "dev", on bloque tout !
                         if (env.CHANGE_TARGET != 'dev') {
-                            error("ERREUR CRITIQUE : La Pull Request cible '${env.CHANGE_TARGET}'. Elle DOIT obligatoirement cibler 'dev' !")
+                            error("SECURITE GIT : La Pull Request cible '${env.CHANGE_TARGET}'. Règle du projet : toute PR doit cibler la branche 'dev' !")
                         }
-                        echo "[PR Check] Cible 'dev' conforme. Validation autorisee."
+                        echo "[Succes] La cible est bien la branche 'dev'. Validation autorisee."
                     } else {
-                        echo "[Info] Exécution manuelle ou test direct autorise."
+                        echo "[Info] Lancement direct autorise pour les tests du binome."
                     }
                 }
 
                 bat '''
                     @echo off
-                    echo [Setup] Verification des composants obligatoires...
+                    echo [Verification] Test des fichiers obligatoires...
                     if not exist app.py (
-                        echo ERREUR : app.py manquant !
+                        echo ERREUR : app.py est absent !
                         exit /b 1
                     )
                     if not exist requirements.txt (
-                        echo ERREUR : requirements.txt manquant !
+                        echo ERREUR : requirements.txt est absent !
                         exit /b 1
                     )
                     if not exist Dockerfile (
-                        echo ERREUR : Dockerfile manquant !
+                        echo ERREUR : Dockerfile est absent !
                         exit /b 1
                     )
                     if not exist scripts\\smoke_test.py (
-                        echo ERREUR : scripts\\smoke_test.py manquant !
+                        echo ERREUR : scripts\\smoke_test.py est absent !
                         exit /b 1
                     )
 
                     if not exist artifacts mkdir artifacts
-                    echo [Setup] Tous les composants sont presents.
+                    echo [Succes] Fichiers verifies avec succes.
 
-                    echo [Docker] Verification du moteur Docker...
+                    REM Tester que le moteur Docker repond bien
                     if exist "%DOCKER_BIN%" (
                         "%DOCKER_BIN%" version
                     ) else (
@@ -92,18 +116,20 @@ pipeline {
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 3 - BUILD DOCKER
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 3 : BUILD DOCKER (Construction de l'image PR)
+        // But : Vérifier que le nouveau code compile bien dans Docker
+        // ======================================================
         stage('3 - Build Docker') {
             steps {
-                echo '=== STAGE 3 : Construction de l image de test PR ==='
+                echo '=== STAGE 3 : Construction de l image de test de la PR ==='
                 bat '''
                     @echo off
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    echo [Build] Construction de %IMAGE_NAME%:pr-%BUILD_NUMBER%...
+                    echo [Build] Construction de l image taguée pr-%BUILD_NUMBER%...
+                    REM Construire l'image Docker de la PR avec Python 3.11
                     "%DOCKER_CMD%" build ^
                         --build-arg PYTHON_VERSION=3.11 ^
                         -t %IMAGE_NAME%:pr-%BUILD_NUMBER% ^
@@ -116,46 +142,50 @@ pipeline {
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 4 - RUN DOCKER
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 4 : RUN DOCKER (Démarrage conteneur de test)
+        // But : Démarrer un conteneur temporaire pour tester l'application
+        // ======================================================
         stage('4 - Run Docker') {
             steps {
-                echo '=== STAGE 4 : Démarrage du conteneur temporaire ==='
+                echo '=== STAGE 4 : Démarrage du conteneur de test PR ==='
                 bat '''
                     @echo off
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    echo [Run] Arret de tout ancien conteneur...
+                    REM Supprimer tout ancien conteneur residuel
                     "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                    echo [Run] Lancement de %CONTAINER_NAME%...
+                    REM Lancer le conteneur en arriere-plan
                     "%DOCKER_CMD%" run -d ^
                         --name %CONTAINER_NAME% ^
-                        -e SECRET_KEY=jenkins-pr-secret-key ^
+                        -e SECRET_KEY=cle-secrete-pr-jenkins ^
                         %IMAGE_NAME%:pr-%BUILD_NUMBER%
 
                     if errorlevel 1 (
-                        echo ERREUR : Echec du demarrage du conteneur.
+                        echo ERREUR : Impossible d allumer le conteneur de la PR !
                         exit /b 1
                     )
 
-                    echo [Run] Conteneur operationnel.
+                    echo [Succes] Conteneur demarre.
                     "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
+                // Attente de 5 secondes pour initialiser Gunicorn
                 sleep(time: 5, unit: 'SECONDS')
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 5 - SMOKE TEST (Validation d'entrée)
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 5 : SMOKE TEST (Contrôle d'acceptation)
+        // But : Envoyer une requête HTTP pour valider le bon fonctionnement
+        // ======================================================
         stage('5 - Smoke Test') {
             steps {
-                echo '=== STAGE 5 : Smoke Test HTTP (Contrôle d acceptation) ==='
+                echo '=== STAGE 5 : Exécution du Smoke Test pour la PR ==='
                 script {
                     try {
+                        // 15 tentatives toutes les 2 secondes
                         retry(15) {
                             sleep(time: 2, unit: 'SECONDS')
                             bat '''
@@ -163,68 +193,73 @@ pipeline {
                                 set "DOCKER_CMD=%DOCKER_BIN%"
                                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
+                                REM Lancer le test smoke a l'interieur du conteneur
                                 "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
                                 type artifacts\\smoke-test.txt
                             '''
                         }
 
+                        // Si reponse HTTP 200 : la PR est declaree valide
                         env.SMOKE_STATUS = 'PASSED'
                         writeFile(file: 'artifacts/smoke-status.txt', text: 'PASSED')
-                        echo '=== SMOKE TEST : PASSED ==='
+                        echo '=== SMOKE TEST DE LA PR : REUSSI (PASSED) ==='
 
                     } catch (err) {
+                        // Si echec : le merge sera interdit
                         env.SMOKE_STATUS = 'FAILED'
                         writeFile(file: 'artifacts/smoke-status.txt', text: 'FAILED')
-                        echo '=== SMOKE TEST : FAILED ==='
+                        echo '=== SMOKE TEST DE LA PR : ECHOUE (FAILED) ==='
                         throw err
                     }
                 }
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // STAGE 6 - ARCHIVE ARTIFACTS
-        // ══════════════════════════════════════════════════════
+        // ======================================================
+        // STAGE 6 : ARCHIVE ARTIFACTS (Décision de fusion)
+        // But : Générer le rapport officiel indiquant si le merge est autorisé
+        // ======================================================
         stage('6 - Archive Artifacts') {
             steps {
-                echo '=== STAGE 6 : Archivage des preuves d exécution ==='
+                echo '=== STAGE 6 : Archivage du rapport de décision de la PR ==='
                 script {
                     def smokeResult = fileExists('artifacts/smoke-status.txt') ? readFile('artifacts/smoke-status.txt').trim() : 'UNKNOWN'
 
                     def report = """\
 ==============================================================
- RAPPORT DE VALIDATION PULL REQUEST - BIWEX STORE
+ RAPPORT OFFICIEL DE VALIDATION DE PULL REQUEST - BIWEX STORE
 ==============================================================
 Date d'execution : ${new Date().format('dd/MM/yyyy HH:mm:ss')}
-Pipeline         : Biwex-Store-PR (Validation Pull Request)
-Build Numero     : #${env.BUILD_NUMBER}
+Pipeline         : Biwex-Store-PR (Controle avant fusion)
+Numero du Build  : #${env.BUILD_NUMBER}
 Pull Request     : #${env.CHANGE_ID ?: 'N/A'}
 Branche Source   : ${env.CHANGE_BRANCH ?: env.BRANCH_NAME ?: 'feature'}
 Branche Cible    : ${env.CHANGE_TARGET ?: 'dev'}
-Auteur PR        : ${env.CHANGE_AUTHOR ?: 'N/A'}
+Auteur de la PR  : ${env.CHANGE_AUTHOR ?: 'N/A'}
 
 IMAGE TESTEE :
   - ${env.IMAGE_NAME}:pr-${env.BUILD_NUMBER}
 
-RESULTAT DES ETAPES :
-  Stage 1 - Checkout        : PASSED
-  Stage 2 - Setup & Cible   : PASSED
-  Stage 3 - Build Docker    : PASSED
-  Stage 4 - Run Docker      : PASSED
-  Stage 5 - Smoke Test      : ${smokeResult}
-  Stage 6 - Archive         : PASSED
+RESULTATS DES ETAPES :
+  Etape 1 - Checkout      : REUSSI
+  Etape 2 - Setup & Cible : REUSSI (Cible dev confirmee)
+  Etape 3 - Build Docker  : REUSSI
+  Etape 4 - Run Docker    : REUSSI
+  Etape 5 - Smoke Test    : ${smokeResult}
+  Etape 6 - Archive       : REUSSI
 
-DECISION AUTOMATIQUE :
+DECISION AUTOMATIQUE DU PIPELINE :
   Fusion autorisee dans dev : ${smokeResult == 'PASSED' ? 'OUI (VALIDEE) [OK]' : 'NON (BLOQUEE) [ERREUR]'}
 
 Binôme : Famory TOURE & Abdoul TRAORE
-Projet DevOps 3LIG - ISG Sousse
+Module DevOps 3LIG - ISG Sousse 2026/2027
 ==============================================================
 """
                     writeFile(file: 'artifacts/pipeline-report.txt', text: report)
                     echo report
                 }
 
+                // Archiver les logs et le rapport dans Jenkins
                 archiveArtifacts(
                     artifacts: 'artifacts/**',
                     fingerprint: true,
@@ -234,25 +269,28 @@ Projet DevOps 3LIG - ISG Sousse
         }
     }
 
-    // ── POST ACTIONS : NETTOYAGE ────────────────────────────────
+    // ======================================================
+    // NETTOYAGE POST-BUILD
+    // ======================================================
     post {
         always {
-            echo '=== Nettoyage du conteneur et image temporaire PR ==='
+            echo '=== Nettoyage du conteneur et de l image temporaire de la PR ==='
             bat '''
                 @echo off
                 set "DOCKER_CMD=%DOCKER_BIN%"
                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
+                REM Nettoyer le conteneur et l'image de test pour liberer l'espace
                 "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
                 "%DOCKER_CMD%" rmi %IMAGE_NAME%:pr-%BUILD_NUMBER% 2>NUL
                 exit /b 0
             '''
         }
         success {
-            echo 'BIWEX STORE [PR] : Validation reussie. Le merge vers dev est pret.'
+            echo 'BIWEX STORE [PR] : Validation reussie. La Pull Request peut etre fusionnee en toute securite.'
         }
         failure {
-            echo 'BIWEX STORE [PR] : Echec de validation de la PR. Consultez artifacts.'
+            echo 'BIWEX STORE [PR] : Echec de la validation. Fusion interdite dans dev tant que l erreur persiste.'
         }
     }
 }
