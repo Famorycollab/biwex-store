@@ -1,3 +1,13 @@
+# ============================================================
+#  .gitignore — BIWEX STORE
+#  Fichiers et dossiers à exclure du dépôt Git
+#  → Évite de committer des fichiers sensibles ou inutiles
+# ============================================================
+
+# ── ARTEFACTS JENKINS ────────────────────────────────────────
+# (générés par les pipelines, non versionnés)
+artifacts/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
