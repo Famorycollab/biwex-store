@@ -403,6 +403,38 @@ def seed_products():
                 category='Accessoires', stock=50,
                 image='https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=800&auto=format&fit=crop&q=85',
                 rating=4.4, review_count=234),
+
+        # ── NOUVELLE COLLECTION HIGH-TECH ────────────────────
+        Product(name='Apple Watch Series 9 GPS', price=1599.00, original_price=1799.00,
+                description='Puce S9 SiP, geste Toucher deux fois magique, écran deux fois plus lumineux, boîtier aluminium 45mm.',
+                category='Accessoires', stock=16,
+                image='https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800&auto=format&fit=crop&q=85',
+                rating=4.8, review_count=142),
+        Product(name='Sony PlayStation VR2', price=2199.00, original_price=2499.00,
+                description='Casque réalité virtuelle 4K HDR, suivi des yeux, retour haptique et gâchettes adaptatives Sense.',
+                category='Gaming', stock=8,
+                image='https://images.unsplash.com/photo-1622979135225-d2ba269bc1df?w=800&auto=format&fit=crop&q=85',
+                rating=4.7, review_count=98),
+        Product(name='Asus ROG Ally Z1 Extreme', price=2599.00, original_price=2899.00,
+                description='Console portable Windows 11, écran FHD 120Hz 7", processeur AMD Ryzen Z1 Extreme, 512GB SSD.',
+                category='Gaming', stock=11,
+                image='https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=85',
+                rating=4.6, review_count=76),
+        Product(name='Samsung Galaxy Watch 6 Classic', price=1199.00, original_price=1399.00,
+                description='Cadran rotatif emblématique en acier, suivi du sommeil avancé, capteur BioActive et écran sapphire.',
+                category='Accessoires', stock=20,
+                image='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=85',
+                rating=4.5, review_count=88),
+        Product(name='Ecran Gaming Samsung Odyssey G9 49"', price=4199.00, original_price=4799.00,
+                description='Écran incurvé Dual QHD 240Hz 1ms, technologie QLED Quantum Dot, immersion totale gaming.',
+                category='Accessoires', stock=5,
+                image='https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&auto=format&fit=crop&q=85',
+                rating=4.9, review_count=64),
+        Product(name='Marshall Stanmore III Bluetooth', price=1299.00, original_price=1450.00,
+                description='Enceinte vintage stéréo Bluetooth 5.2, son puissant et immersif, boutons de contrôle en laiton.',
+                category='Audio', stock=14,
+                image='https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&auto=format&fit=crop&q=85',
+                rating=4.8, review_count=189),
     ]
 
     # bulk_save_objects : insère tous les produits en une seule transaction
@@ -1193,6 +1225,131 @@ def health_check():
             'total_products': total_products,
             'products_in_stock': in_stock_count,
             'database': 'Connectee et operationnelle'
+        }
+    }), 200
+
+
+# ═══════════════════════════════════════════════════════════════
+#             API REST PUBLIQUE — BIWEX STORE
+#  Développée par : Abdoul TRAORE (Branche feature/abdoul-traore)
+#  Notion de cours : Interopérabilité des Systèmes d'Information
+#  Permet d'échanger des données en JSON avec des applications mobiles,
+#  des partenaires commerciaux ou des tableaux de bord décisionnels.
+# ═══════════════════════════════════════════════════════════════
+
+@app.route('/api/products', methods=['GET'])
+def api_get_products():
+    """
+    API REST : Retourne la liste des produits en format JSON.
+    Supporte les filtres : ?category=Smartphones&search=iphone
+    """
+    category = request.args.get('category', '').strip()
+    search = request.args.get('search', '').strip()
+
+    query = Product.query
+    if category:
+        query = query.filter_by(category=category)
+    if search:
+        query = query.filter(Product.name.ilike(f'%{search}%'))
+
+    products = query.all()
+    results = []
+    for p in products:
+        results.append({
+            'id': p.id,
+            'name': p.name,
+            'price': p.price,
+            'original_price': p.original_price,
+            'category': p.category,
+            'stock': p.stock,
+            'in_stock': p.stock > 0,
+            'rating': p.rating,
+            'review_count': p.review_count,
+            'image': p.image
+        })
+
+    return jsonify({
+        'status': 'success',
+        'count': len(results),
+        'products': results
+    }), 200
+
+
+@app.route('/api/products/<int:id>', methods=['GET'])
+def api_get_product_detail(id):
+    """
+    API REST : Retourne le détail complet d'un produit par son ID.
+    Exemple : /api/products/1
+    """
+    p = Product.query.get(id)
+    if not p:
+        return jsonify({
+            'status': 'error',
+            'message': f"Le produit avec l'identifiant #{id} n'existe pas."
+        }), 404
+
+    return jsonify({
+        'status': 'success',
+        'product': {
+            'id': p.id,
+            'name': p.name,
+            'price': p.price,
+            'original_price': p.original_price,
+            'description': p.description,
+            'category': p.category,
+            'stock': p.stock,
+            'rating': p.rating,
+            'review_count': p.review_count,
+            'image': p.image
+        }
+    }), 200
+
+
+@app.route('/api/categories', methods=['GET'])
+def api_get_categories():
+    """
+    API REST : Liste de toutes les catégories avec le nombre d'articles associés.
+    """
+    cats = db.session.query(Product.category).distinct().all()
+    category_list = []
+    for c in cats:
+        if c[0]:
+            count = Product.query.filter_by(category=c[0]).count()
+            category_list.append({
+                'category_name': c[0],
+                'product_count': count
+            })
+
+    return jsonify({
+        'status': 'success',
+        'total_categories': len(category_list),
+        'categories': category_list
+    }), 200
+
+
+@app.route('/api/stats', methods=['GET'])
+def api_get_store_stats():
+    """
+    API REST Décisionnelle : Indicateurs clés de performance (KPI) pour le management.
+    Idéal pour les étudiants en Informatique de Gestion (3LIG).
+    """
+    total_products = Product.query.count()
+    total_orders = Order.query.count()
+    total_users = User.query.count()
+    total_newsletter = Newsletter.query.count()
+
+    paid_orders = Order.query.filter(Order.status.in_(['Payée', 'Livrée'])).all()
+    chiffre_affaires = sum(o.total for o in paid_orders)
+
+    return jsonify({
+        'status': 'success',
+        'kpi': {
+            'chiffre_affaires_total_dt': round(chiffre_affaires, 3),
+            'commandes_total': total_orders,
+            'commandes_livrees_payees': len(paid_orders),
+            'clients_inscrits': total_users,
+            'produits_catalogue': total_products,
+            'abonnes_newsletter': total_newsletter
         }
     }), 200
 
