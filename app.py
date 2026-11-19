@@ -1173,16 +1173,27 @@ def update_order_status(id):
 #  Usage depuis Jenkins ou curl :
 #    curl http://localhost:5000/health → {"status": "healthy", ...}
 # ═══════════════════════════════════════════════════════════════
+# ── ENDPOINT HEALTH CHECK & STATISTIQUES EN TEMPS RÉEL ─────────
+# Route utilisée par Jenkins et les tableaux de bord de supervision
+# pour surveiller l'état, la version et le stock de l'application.
 @app.route('/health')
 def health_check():
     """
     Endpoint de vérification de santé pour le monitoring.
     Utilisé par les smoke tests et les sondes Docker/Kubernetes.
     """
+    total_products = Product.query.count()
+    in_stock_count = Product.query.filter(Product.stock > 0).count()
     return jsonify({
         'status': 'healthy',
         'app': 'Biwex Store',
-        'version': '1.0.0'
+        'version': '1.1.0',
+        'environment': 'Production (Docker Conteneurise)',
+        'metrics': {
+            'total_products': total_products,
+            'products_in_stock': in_stock_count,
+            'database': 'Connectee et operationnelle'
+        }
     }), 200
 
 
