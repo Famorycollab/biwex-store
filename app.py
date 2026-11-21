@@ -460,7 +460,8 @@ with app.app_context():
         seed_products()
 
     # Créer un compte administrateur par défaut s'il n'existe pas
-    if not User.query.filter_by(is_admin=True).first():
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
         admin = User(
             username='Admin Biwex',
             email='admin@biwex.tn',
@@ -469,6 +470,26 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+
+    # Peupler des avis clients de démonstration (Feature Famory)
+    if not Review.query.first():
+        p1 = Product.query.get(1)
+        p2 = Product.query.get(2)
+        p3 = Product.query.get(7)
+        if admin:
+            demo_reviews = []
+            if p1:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p1.id, rating=5,
+                                           comment="Appareil d'une finition irréprochable ! Reçu scellé avec facture et garantie officielle 1 an."))
+            if p2:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p2.id, rating=5,
+                                           comment="Écran AMOLED magnifique et autonomie record. Service client très réactif à Sousse."))
+            if p3:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p3.id, rating=5,
+                                           comment="Puissance phénoménale pour le dev et le montage. Livraison sécurisée sous 24h."))
+            if demo_reviews:
+                db.session.bulk_save_objects(demo_reviews)
+                db.session.commit()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -819,8 +840,47 @@ def logout():
 
 
 # ═══════════════════════════════════════════════════════════════
-#                     ROUTES PANIER
+#                     ROUTES PANIER ET CODES PROMO
 # ═══════════════════════════════════════════════════════════════
+
+# Dictionnaire des codes promotionnels actifs sur Biwex Store
+# Notion facile : clé = code à taper, valeur = détails de la réduction
+COUPONS_DISPONIBLES = {
+    'DEVOPS20': {'remise_pourcent': 20, 'description': 'Remise spéciale DevOps (-20%)'},
+    'ISGS10':   {'remise_pourcent': 10, 'description': 'Remise étudiante ISG Sousse (-10%)'},
+    'BIWEX5':   {'remise_fixe': 5.0,    'description': 'Bon d\'achat de bienvenue (-5 DT)'}
+}
+
+@app.route('/cart/apply-coupon', methods=['POST'])
+def apply_coupon():
+    """
+    Applique un code promo sur le panier en cours.
+    Vérifie l'existence du code et le stocke dans la session Flask.
+    """
+    code = request.form.get('coupon_code', '').strip().upper()
+    if not code:
+        flash('Veuillez saisir un code promo.', 'warning')
+        return redirect(url_for('cart'))
+
+    if code in COUPONS_DISPONIBLES:
+        session['coupon'] = {
+            'code': code,
+            **COUPONS_DISPONIBLES[code]
+        }
+        flash(f'Code promo "{code}" activé avec succès ! 🎉', 'success')
+    else:
+        flash(f'Le code promo "{code}" est invalide ou expiré.', 'danger')
+
+    return redirect(url_for('cart'))
+
+
+@app.route('/cart/remove-coupon')
+def remove_coupon():
+    """Retire le code promo actuellement appliqué."""
+    session.pop('coupon', None)
+    flash('Le code promotionnel a été retiré.', 'info')
+    return redirect(url_for('cart'))
+
 
 @app.route('/cart')
 def cart():
@@ -831,7 +891,7 @@ def cart():
     Structure : {"product_id": quantity, ...}
     Exemple   : {"1": 2, "5": 1} → 2x produit #1, 1x produit #5
 
-    La page nettoie automatiquement les produits en rupture de stock.
+    Prend en compte les codes promo et nettoie les produits épuisés.
     """
     cart = session.get('cart', {})
     clean_cart = {}
@@ -850,7 +910,20 @@ def cart():
 
     # Mise à jour du panier nettoyé dans la session
     session['cart'] = clean_cart
-    return render_template('cart.html', items=items, total=total)
+
+    # Calcul de la réduction si un code promo est actif
+    coupon = session.get('coupon')
+    discount = 0.0
+    if coupon and total > 0:
+        if 'remise_pourcent' in coupon:
+            discount = round(total * (coupon['remise_pourcent'] / 100.0), 3)
+        elif 'remise_fixe' in coupon:
+            discount = min(total, float(coupon['remise_fixe']))
+
+    final_total = max(0.0, total - discount)
+
+    return render_template('cart.html', items=items, total=total, discount=discount,
+                           final_total=final_total, coupon=coupon)
 
 
 @app.route('/cart/add/<int:id>', methods=['POST'])
@@ -991,6 +1064,16 @@ def checkout():
     if stock_issue:
         flash('Le contenu de votre panier a été mis à jour selon les stocks disponibles.', 'warning')
 
+    # Prise en compte du code promo s'il existe
+    coupon = session.get('coupon')
+    discount = 0.0
+    if coupon and total > 0:
+        if 'remise_pourcent' in coupon:
+            discount = round(total * (coupon['remise_pourcent'] / 100.0), 3)
+        elif 'remise_fixe' in coupon:
+            discount = min(total, float(coupon['remise_fixe']))
+    final_total = max(0.0, total - discount)
+
     if request.method == 'POST':
         # Récupération des informations de livraison
         address = request.form.get('address', '').strip()
@@ -1005,10 +1088,10 @@ def checkout():
         if phone and not current_user.phone:
             current_user.phone = phone
 
-        # Création de la commande en base de données
+        # Création de la commande en base de données avec le montant remisé
         order = Order(
             user_id=current_user.id,
-            total=total,
+            total=final_total,
             status='En attente',
             address=address or current_user.address,
             city=city or current_user.city,
@@ -1031,8 +1114,9 @@ def checkout():
 
         db.session.commit()
 
-        # Vidage du panier après commande réussie
+        # Vidage du panier et du code promo après commande réussie
         session['cart'] = {}
+        session.pop('coupon', None)
 
         # ── Génération du message WhatsApp ──────────────────
         import urllib.parse
@@ -1048,7 +1132,9 @@ def checkout():
         for item in items:
             lines.append(f"  • {item['product'].name} × {item['qty']} — {item['subtotal']:.2f} DT")
         lines.append('')
-        lines.append(f'💰 *Total : {total:.2f} DT*')
+        if discount > 0:
+            lines.append(f'🎟️ *Remise code promo ({coupon["code"]}) : -{discount:.2f} DT*')
+        lines.append(f'💰 *Total Final : {final_total:.2f} DT*')
         lines.append('')
         lines.append("✅ Merci de confirmer cette commande et d'indiquer les instructions de paiement.")
 
@@ -1058,7 +1144,8 @@ def checkout():
         flash('🎉 Commande enregistrée ! Cliquez sur le bouton WhatsApp pour finaliser votre commande.', 'success')
         return redirect(url_for('order_confirmation', id=order.id, wa=whatsapp_url))
 
-    return render_template('checkout.html', items=items, total=total)
+    return render_template('checkout.html', items=items, total=total, discount=discount,
+                           final_total=final_total, coupon=coupon)
 
 
 # ── CONFIRMATION DE COMMANDE ──────────────────────────────────
@@ -1351,6 +1438,61 @@ def api_get_store_stats():
             'produits_catalogue': total_products,
             'abonnes_newsletter': total_newsletter
         }
+    }), 200
+
+
+@app.route('/api/system', methods=['GET'])
+def api_get_system_info():
+    """
+    API REST de Diagnostic Système (Feature Abdoul TRAORE) :
+    Fournit les métriques d'exécution du serveur Flask pour la supervision DevOps.
+    """
+    import platform
+    import sys
+
+    db_type = 'PostgreSQL' if 'postgres' in app.config.get('SQLALCHEMY_DATABASE_URI', '') else 'SQLite'
+
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Biwex Store API',
+        'system': {
+            'python_version': sys.version.split()[0],
+            'os_platform': platform.platform(),
+            'database_engine': db_type,
+            'total_products_indexed': Product.query.count(),
+            'active_coupons': list(COUPONS_DISPONIBLES.keys()),
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }
+    }), 200
+
+
+@app.route('/api/export/catalog.json', methods=['GET'])
+def api_export_catalog():
+    """
+    Export complet du catalogue au format JSON standardisé (Feature Abdoul TRAORE).
+    Permet l'intégration avec des applications mobiles ou des partenaires externes.
+    """
+    products = Product.query.all()
+    catalog_data = []
+    for p in products:
+        catalog_data.append({
+            'id': p.id,
+            'sku': f"BIW-{p.id:04d}",
+            'name': p.name,
+            'price_dt': p.price,
+            'original_price_dt': p.original_price,
+            'category': p.category,
+            'stock': p.stock,
+            'rating': p.rating,
+            'reviews': p.review_count,
+            'in_stock': p.stock > 0
+        })
+
+    return jsonify({
+        'store': 'Biwex Store Tunisie',
+        'export_timestamp': datetime.utcnow().isoformat(),
+        'total_items': len(catalog_data),
+        'catalog': catalog_data
     }), 200
 
 

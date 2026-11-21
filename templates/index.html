@@ -345,6 +345,26 @@
             <strong>{{ products|length }}</strong> produit(s) disponible(s)
             {% if search %} pour la recherche "<em>{{ search }}</em>"{% endif %}
           </span>
+
+          <!-- Filtres Rapides en 1 Clic (Feature Famory) -->
+          <div class="quick-filter-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px 0;">
+            <a href="/?sort=new{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+               class="btn-outline" style="font-size:11.5px;padding:4px 10px;border-radius:15px;text-decoration:none;background:{% if sort == 'new' %}#e11d48;color:#fff;border-color:#e11d48{% else %}#f8fafc{% endif %};">
+              ✨ Nouveautés
+            </a>
+            <a href="/?sort=rating{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+               class="btn-outline" style="font-size:11.5px;padding:4px 10px;border-radius:15px;text-decoration:none;background:{% if sort == 'rating' %}#e11d48;color:#fff;border-color:#e11d48{% else %}#f8fafc{% endif %};">
+              ⭐ Les Mieux Notés
+            </a>
+            <a href="/?in_stock=1{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+               class="btn-outline" style="font-size:11.5px;padding:4px 10px;border-radius:15px;text-decoration:none;background:{% if in_stock == '1' %}#16a34a;color:#fff;border-color:#16a34a{% else %}#f8fafc{% endif %};">
+              🟢 En Stock Immédiat
+            </a>
+            <a href="/?sort=price_asc{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+               class="btn-outline" style="font-size:11.5px;padding:4px 10px;border-radius:15px;text-decoration:none;background:{% if sort == 'price_asc' %}#2563eb;color:#fff;border-color:#2563eb{% else %}#f8fafc{% endif %};">
+              🏷️ Petits Prix
+            </a>
+          </div>
         </div>
 
         <!-- Formulaire de Tri Style MyTek -->
