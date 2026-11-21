@@ -1441,6 +1441,61 @@ def api_get_store_stats():
     }), 200
 
 
+@app.route('/api/system', methods=['GET'])
+def api_get_system_info():
+    """
+    API REST de Diagnostic Système (Feature Abdoul TRAORE) :
+    Fournit les métriques d'exécution du serveur Flask pour la supervision DevOps.
+    """
+    import platform
+    import sys
+
+    db_type = 'PostgreSQL' if 'postgres' in app.config.get('SQLALCHEMY_DATABASE_URI', '') else 'SQLite'
+
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Biwex Store API',
+        'system': {
+            'python_version': sys.version.split()[0],
+            'os_platform': platform.platform(),
+            'database_engine': db_type,
+            'total_products_indexed': Product.query.count(),
+            'active_coupons': list(COUPONS_DISPONIBLES.keys()),
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }
+    }), 200
+
+
+@app.route('/api/export/catalog.json', methods=['GET'])
+def api_export_catalog():
+    """
+    Export complet du catalogue au format JSON standardisé (Feature Abdoul TRAORE).
+    Permet l'intégration avec des applications mobiles ou des partenaires externes.
+    """
+    products = Product.query.all()
+    catalog_data = []
+    for p in products:
+        catalog_data.append({
+            'id': p.id,
+            'sku': f"BIW-{p.id:04d}",
+            'name': p.name,
+            'price_dt': p.price,
+            'original_price_dt': p.original_price,
+            'category': p.category,
+            'stock': p.stock,
+            'rating': p.rating,
+            'reviews': p.review_count,
+            'in_stock': p.stock > 0
+        })
+
+    return jsonify({
+        'store': 'Biwex Store Tunisie',
+        'export_timestamp': datetime.utcnow().isoformat(),
+        'total_items': len(catalog_data),
+        'catalog': catalog_data
+    }), 200
+
+
 # ═══════════════════════════════════════════════════════════════
 #  POINT D'ENTRÉE — Démarrage du serveur de développement
 #
