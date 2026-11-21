@@ -31,7 +31,9 @@ class ProjectStructureTest(unittest.TestCase):
             'Jenkinsfile-Tag',
             '.dockerignore',
             '.gitignore',
-            'scripts/smoke_test.py'
+            'scripts/smoke_test.py',
+            'scripts/benchmark.py',
+            'tests/test_business_logic.py'
         ]
         for rel_path in required_files:
             full_path = os.path.join(self.root_dir, rel_path)
@@ -42,7 +44,9 @@ class ProjectStructureTest(unittest.TestCase):
         python_files = [
             'app.py',
             'database.py',
-            'scripts/smoke_test.py'
+            'scripts/smoke_test.py',
+            'scripts/benchmark.py',
+            'tests/test_business_logic.py'
         ]
         for rel_path in python_files:
             full_path = os.path.join(self.root_dir, rel_path)
