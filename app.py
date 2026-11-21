@@ -460,7 +460,8 @@ with app.app_context():
         seed_products()
 
     # Créer un compte administrateur par défaut s'il n'existe pas
-    if not User.query.filter_by(is_admin=True).first():
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
         admin = User(
             username='Admin Biwex',
             email='admin@biwex.tn',
@@ -469,6 +470,26 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+
+    # Peupler des avis clients de démonstration (Feature Famory)
+    if not Review.query.first():
+        p1 = Product.query.get(1)
+        p2 = Product.query.get(2)
+        p3 = Product.query.get(7)
+        if admin:
+            demo_reviews = []
+            if p1:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p1.id, rating=5,
+                                           comment="Appareil d'une finition irréprochable ! Reçu scellé avec facture et garantie officielle 1 an."))
+            if p2:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p2.id, rating=5,
+                                           comment="Écran AMOLED magnifique et autonomie record. Service client très réactif à Sousse."))
+            if p3:
+                demo_reviews.append(Review(user_id=admin.id, product_id=p3.id, rating=5,
+                                           comment="Puissance phénoménale pour le dev et le montage. Livraison sécurisée sous 24h."))
+            if demo_reviews:
+                db.session.bulk_save_objects(demo_reviews)
+                db.session.commit()
 
 
 # ═══════════════════════════════════════════════════════════════
