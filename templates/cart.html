@@ -104,9 +104,44 @@
         <span>GRATUITE (24/48H)</span>
       </div>
 
+      <!-- Section Code Promo / Remise (Feature Famory) -->
+      <div style="margin:12px 0;padding:12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;">
+        {% if coupon %}
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-size:12px;font-weight:800;color:var(--mytek-green);">
+              <i class="bi bi-patch-check-fill"></i> CODE : {{ coupon.code }}
+            </span>
+            <div style="font-size:11px;color:#64748b;">{{ coupon.description }}</div>
+          </div>
+          <a href="/cart/remove-coupon" class="btn-remove" title="Supprimer le code" style="color:#ef4444;text-decoration:none;">
+            <i class="bi bi-x-circle-fill"></i>
+          </a>
+        </div>
+        {% else %}
+        <form action="/cart/apply-coupon" method="post" style="display:flex;gap:6px;">
+          <input type="text" name="coupon_code" placeholder="Code promo (ex: DEVOPS20)"
+                 style="flex:1;padding:7px 10px;font-size:12px;border:1px solid #cbd5e1;border-radius:4px;text-transform:uppercase;">
+          <button type="submit" class="btn-outline" style="padding:7px 12px;font-size:12px;white-space:nowrap;background:#fff;">
+            Appliquer
+          </button>
+        </form>
+        <div style="font-size:10.5px;color:#94a3b8;margin-top:5px;">
+          Codes actifs : <strong>DEVOPS20</strong> (-20%) • <strong>ISGS10</strong> (-10%) • <strong>BIWEX5</strong> (-5 DT)
+        </div>
+        {% endif %}
+      </div>
+
+      {% if discount and discount > 0 %}
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;color:#16a34a;font-weight:800;">
+        <span><i class="bi bi-tag-fill"></i> Réduction ({{ coupon.code }})</span>
+        <span>-{{ discount|format_dt }}</span>
+      </div>
+      {% endif %}
+
       <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:2px solid var(--mytek-red);margin-top:10px;">
         <span style="font-size:16px;font-weight:900;color:var(--mytek-dark);">TOTAL TTC</span>
-        <span style="font-size:24px;font-weight:900;color:var(--mytek-red);">{{ total|format_dt }}</span>
+        <span style="font-size:24px;font-weight:900;color:var(--mytek-red);">{{ (final_total if final_total is defined else total)|format_dt }}</span>
       </div>
 
       <a href="/checkout" class="btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:10px;">
@@ -114,7 +149,7 @@
       </a>
 
       <!-- Commande Directe WhatsApp -->
-      <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20valider%20mon%20panier%20d'un%20montant%20de%20*{{ total|format_dt }}*%20directement%20avec%20vous." 
+      <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20valider%20mon%20panier%20d'un%20montant%20de%20*{{ (final_total if final_total is defined else total)|format_dt }}*%20directement%20avec%20vous." 
          target="_blank" 
          class="btn-wa-direct-mytek" 
          style="margin-top:10px;padding:11px;font-size:13px;">
