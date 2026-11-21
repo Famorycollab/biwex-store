@@ -22,7 +22,8 @@
       </button>
       <a href="/product/{{ item.product.id }}" style="text-decoration:none;">
         <div class="product-img-wrap">
-          <img src="{{ item.product.image }}" alt="{{ item.product.name }}" loading="lazy">
+          <img src="{{ item.product.image }}" alt="{{ item.product.name }}" loading="lazy"
+               referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/placeholder/{{ item.product.id }}';">
         </div>
         <div class="product-info">
           <div class="brand">{{ item.product.category }}</div>
