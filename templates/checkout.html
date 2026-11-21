@@ -111,7 +111,8 @@
         {% for item in items %}
         <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--mytek-border-light);align-items:center;">
           <img src="{{ item.product.image }}" width="50" height="50"
-               style="object-fit:contain;border-radius:4px;border:1px solid #f0f0f0;flex-shrink:0;background:#fff;" alt="">
+               style="object-fit:contain;border-radius:4px;border:1px solid #f0f0f0;flex-shrink:0;background:#fff;" alt=""
+               referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/placeholder/{{ item.product.id }}';">
           <div style="flex:1;min-width:0;">
             <div style="font-size:12.5px;font-weight:700;color:var(--mytek-dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               {{ item.product.name }}

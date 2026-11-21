@@ -20,7 +20,7 @@
       <!-- Colonne Image -->
       <div class="detail-gallery-col">
         <div class="detail-img-wrapper">
-          <img src="{{ product.image }}" class="detail-main-img" alt="{{ product.name }}">
+          <img src="{{ product.image }}" class="detail-main-img" alt="{{ product.name }}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/placeholder/{{ product.id }}';">
           
           <!-- Badges sur Image -->
           <div class="detail-img-badges">
@@ -312,7 +312,7 @@
           <span class="badge-stock-mytek"><i class="bi bi-check-circle-fill"></i> EN STOCK</span>
         </div>
         <a href="/product/{{ p.id }}" class="card-img-link">
-          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-prod-img">
+          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-prod-img" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/placeholder/{{ p.id }}';">
         </a>
         <div class="card-body-mytek">
           <div class="card-cat-brand">{{ p.category }} • Réf: BIW-{{ p.id }}</div>

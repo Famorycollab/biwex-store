@@ -39,7 +39,8 @@ from flask import (
     request,            # Accès aux données de la requête (GET, POST)
     session,            # Données de session (panier, etc.)
     flash,              # Messages temporaires affichés une seule fois
-    jsonify             # Convertit un dict Python en réponse JSON
+    jsonify,            # Convertit un dict Python en réponse JSON
+    Response            # Réponse HTTP personnalisée (pour images SVG dynamiques)
 )
 
 # SQLAlchemy : ORM pour manipuler la base de données via des objets
@@ -199,6 +200,67 @@ def format_dt(value):
         return f"{formatted} DT"
     except (ValueError, TypeError):
         return f"{value} DT"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  GÉNÉRATEUR D'IMAGES VECTORIELLES LOCALES (FALLBACK SVG)
+#  Garantit un affichage 100% parfait même sans connexion Internet !
+# ═══════════════════════════════════════════════════════════════
+
+CATEGORY_THEMES = {
+    'Smartphones': {'c1': '#f43f5e', 'c2': '#be123c', 'icon': '<rect x="20" y="10" width="24" height="44" rx="5" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="47" r="2" fill="#fff"/>'},
+    'Laptops':     {'c1': '#3b82f6', 'c2': '#1d4ed8', 'icon': '<rect x="14" y="15" width="36" height="24" rx="3" fill="none" stroke="#fff" stroke-width="3"/><path d="M8 43 L56 43" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>'},
+    'Audio':       {'c1': '#f59e0b', 'c2': '#b45309', 'icon': '<path d="M16 32 A16 16 0 0 1 48 32" fill="none" stroke="#fff" stroke-width="3.5"/><rect x="12" y="30" width="8" height="15" rx="4" fill="#fff"/><rect x="44" y="30" width="8" height="15" rx="4" fill="#fff"/>'},
+    'Gaming':      {'c1': '#8b5cf6', 'c2': '#6d28d9', 'icon': '<rect x="12" y="18" width="40" height="26" rx="9" fill="none" stroke="#fff" stroke-width="3"/><circle cx="23" cy="31" r="3" fill="#fff"/><circle cx="41" cy="27" r="2.5" fill="#fff"/><circle cx="37" cy="34" r="2.5" fill="#fff"/>'},
+    'Tablettes':   {'c1': '#10b981', 'c2': '#047857', 'icon': '<rect x="16" y="9" width="32" height="46" rx="5" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="49" r="2" fill="#fff"/>'},
+    'TV':          {'c1': '#06b6d4', 'c2': '#0e7490', 'icon': '<rect x="10" y="13" width="44" height="29" rx="3" fill="none" stroke="#fff" stroke-width="3"/><path d="M26 43 L38 43 M32 43 L32 48" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'},
+    'Accessoires': {'c1': '#64748b', 'c2': '#334155', 'icon': '<circle cx="32" cy="32" r="15" fill="none" stroke="#fff" stroke-width="3"/><path d="M32 17 L32 10 M32 47 L32 54" stroke="#fff" stroke-width="3"/>'}
+}
+
+@app.route('/placeholder/<int:id>')
+def product_placeholder(id):
+    """
+    Génère dynamiquement une image vectorielle SVG stylisée
+    pour le produit spécifié.
+    """
+    p = Product.query.get(id)
+    raw_name = p.name if p else f"Produit #{id}"
+    clean_name = raw_name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    cat = (p.category if p and p.category in CATEGORY_THEMES else 'Accessoires')
+    theme = CATEGORY_THEMES.get(cat, CATEGORY_THEMES['Accessoires'])
+    price_txt = f"{p.price:,.3f} DT".replace(",", " ").replace(".", ",") if p else "Biwex Store"
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="100%" height="100%">
+  <defs>
+    <linearGradient id="grad_{id}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="{theme['c1']}"/>
+      <stop offset="100%" stop-color="{theme['c2']}"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="320" fill="#f8fafc" rx="12"/>
+  <rect x="12" y="12" width="376" height="296" fill="#ffffff" rx="10" stroke="#e2e8f0" stroke-width="1.5"/>
+  
+  <g transform="translate(168, 55)">
+    <rect width="64" height="64" rx="16" fill="url(#grad_{id})"/>
+    {theme['icon']}
+  </g>
+
+  <rect x="140" y="135" width="120" height="24" rx="12" fill="#f1f5f9"/>
+  <text x="200" y="151" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="{theme['c2']}" text-anchor="middle" letter-spacing="0.5">{cat.upper()}</text>
+
+  <text x="200" y="195" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="15" font-weight="800" fill="#1e293b" text-anchor="middle">{clean_name[:26]}</text>
+
+  <text x="200" y="230" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="18" font-weight="900" fill="#e11d48" text-anchor="middle">{price_txt}</text>
+
+  <g transform="translate(132, 260)">
+    <circle cx="10" cy="8" r="6" fill="#10b981"/>
+    <path d="M7 8 L9 10 L13 6" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="22" y="12" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11" font-weight="600" fill="#64748b">Garantie Officielle 1 An</text>
+  </g>
+</svg>'''
+    res = Response(svg, mimetype='image/svg+xml')
+    res.headers['Cache-Control'] = 'public, max-age=86400'
+    return res
 
 
 # ═══════════════════════════════════════════════════════════════

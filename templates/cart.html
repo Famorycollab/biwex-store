@@ -37,7 +37,8 @@
                 <td>
                   <div style="display:flex;align-items:center;gap:14px;">
                     <img src="{{ item.product.image }}" width="70" height="70"
-                         style="object-fit:contain;border-radius:6px;border:1px solid #f0f0f0;background:#fff;" alt="{{ item.product.name }}">
+                         style="object-fit:contain;border-radius:6px;border:1px solid #f0f0f0;background:#fff;" alt="{{ item.product.name }}"
+                         referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/placeholder/{{ item.product.id }}';">
                     <div>
                       <a href="/product/{{ item.product.id }}"
                          style="font-size:13.5px;font-weight:800;color:var(--mytek-dark);text-decoration:none;display:block;">
