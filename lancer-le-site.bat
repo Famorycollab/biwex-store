@@ -10,8 +10,11 @@ echo   DEMARRAGE DU SITE BIWEX STORE EN CONTENEUR DOCKER
 echo ============================================================
 echo.
 
-REM 1. Verifie si le conteneur existe deja et le relance, ou le cree
+REM 1. Nettoyage de l'ancien conteneur
 docker rm -f biwex-production 2>NUL
+
+echo [Docker] Mise a jour et construction de l'image biwex-store:latest...
+docker build -t biwex-store:latest .
 
 echo [Docker] Demarrage du conteneur sur le port 5000...
 docker run -d --name biwex-production -p 5000:5000 -e SECRET_KEY=biwex-prod-secret biwex-store:latest
