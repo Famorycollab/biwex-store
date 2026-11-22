@@ -39,6 +39,13 @@ class ProjectStructureTest(unittest.TestCase):
             full_path = os.path.join(self.root_dir, rel_path)
             self.assertTrue(os.path.exists(full_path), f"Fichier manquant: {rel_path}")
 
+    def test_product_assets_exist(self):
+        """Vérifie la présence des images vectorielles locales (mode hors-ligne garanti)"""
+        categories = ['smartphones', 'laptops', 'audio', 'gaming', 'tablettes', 'tv', 'accessoires']
+        for cat in categories:
+            svg_path = os.path.join(self.root_dir, 'static', 'img', 'products', f"{cat}.svg")
+            self.assertTrue(os.path.exists(svg_path), f"Image vectorielle manquante pour: {cat}")
+
     def test_python_syntax(self):
         """Compile les scripts Python pour détecter les erreurs de syntaxe"""
         python_files = [
