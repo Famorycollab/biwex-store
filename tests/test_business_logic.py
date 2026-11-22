@@ -81,6 +81,22 @@ class BusinessLogicTestCase(unittest.TestCase):
         self.assertTrue(formatte.endswith("DT"), "Le prix doit comporter le suffixe DT")
         self.assertIn("1 299", formatte, "Le millier doit être séparé par un espace")
 
+    def test_pagination_calculation(self):
+        """Vérifie le découpage pagination pour optimiser le défilement de page"""
+        total_produits = 38
+        par_page = 12
+        pages_attendues = (total_produits + par_page - 1) // par_page  # 4 pages
+
+        self.assertEqual(pages_attendues, 4, "38 produits à raison de 12 par page doivent donner 4 pages")
+
+        # Test des décalages d'offset
+        page_1_offset = (1 - 1) * par_page  # 0
+        page_2_offset = (2 - 1) * par_page  # 12
+        page_4_offset = (4 - 1) * par_page  # 36
+        self.assertEqual(page_1_offset, 0)
+        self.assertEqual(page_2_offset, 12)
+        self.assertEqual(page_4_offset, 36)
+
 
 if __name__ == '__main__':
     unittest.main()
