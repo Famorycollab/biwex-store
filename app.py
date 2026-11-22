@@ -652,7 +652,26 @@ def index():
     else:
         query = query.order_by(Product.rating.desc(), Product.id.asc())  # Par défaut
 
-    products = query.all()
+    # Pagination ergonomique pour limiter le défilement vertical (12 produits par défaut)
+    per_page_arg = request.args.get('per_page', default='12')
+    try:
+        per_page = int(per_page_arg)
+    except (ValueError, TypeError):
+        per_page = 12
+
+    page = request.args.get('page', default=1, type=int)
+    if page < 1:
+        page = 1
+
+    total_products = query.count()
+    if per_page > 0:
+        total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
+        page = min(page, total_pages) if total_pages > 0 else 1
+        products = query.offset((page - 1) * per_page).limit(per_page).all()
+    else:
+        total_pages = 1
+        page = 1
+        products = query.all()
 
     # Comptage des produits par catégorie (pour la sidebar)
     all_prods = Product.query.all()
@@ -663,7 +682,7 @@ def index():
 
     categories = list(category_counts.keys())
 
-    # Ventes Flash : produits avec remise (original_price > price)
+    # Ventes Flash : produits avec remise (original_price > price) - max 4 pour réduire le défilement
     flash_products = [p for p in all_prods if p.original_price and p.original_price > p.price]
     flash_products.sort(key=lambda x: (x.original_price - x.price), reverse=True)
 
@@ -674,9 +693,13 @@ def index():
 
     return render_template('index.html',
                            products=products,
+                           total_products=total_products,
+                           page=page,
+                           total_pages=total_pages,
+                           per_page=per_page,
                            categories=categories,
                            category_counts=category_counts,
-                           flash_products=flash_products[:6],
+                           flash_products=flash_products[:4],
                            selected_category=category,
                            search=search,
                            sort=sort,

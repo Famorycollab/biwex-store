@@ -158,26 +158,25 @@
           </div>
         </div>
 
-        <!-- Boutons d'Action MyTek -->
+        <!-- Boutons d'Action MyTek en Ligne Compacte -->
         <div class="card-actions-mytek">
           {% if p.stock > 0 %}
           <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
             <input type="hidden" name="qty" value="1">
-            <button type="submit" class="btn-add-cart-mytek">
-              <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
+            <button type="submit" class="btn-add-cart-mytek" title="Ajouter {{ p.name }} au panier">
+              <i class="bi bi-cart-plus-fill"></i> <span>Ajouter</span>
             </button>
           </form>
           
-          <!-- Commande Directe par WhatsApp -->
           <a href="https://wa.me/{{ WHATSAPP_NUMBER }}?text=Bonjour%20Biwex,%20je%20souhaite%20commander%20immédiatement%20le%20produit%20suivant%20:%0A-%20*{{ p.name }}*%0A-%20Prix%20:%20{{ p.price|format_dt }}%0A-%20Réf%20:%20BIW-{{ p.id }}" 
              target="_blank" 
              class="btn-wa-direct-mytek" 
              title="Commander par WhatsApp">
-            <i class="bi bi-whatsapp"></i> Commander par WhatsApp
+            <i class="bi bi-whatsapp"></i>
           </a>
           {% else %}
           <button class="btn-rupture-mytek" disabled>
-            <i class="bi bi-clock-history"></i> PRODUIT INDISPONIBLE
+            <i class="bi bi-clock-history"></i> Indisponible
           </button>
           {% endif %}
         </div>
@@ -453,19 +452,15 @@
               {% endif %}
             </div>
 
-            <!-- Caractéristiques Résumées -->
-            <p class="card-short-desc">
-              {{ p.description[:85] }}{% if p.description|length > 85 %}...{% endif %}
-            </p>
           </div>
 
-          <!-- Boutons Panier & WhatsApp -->
+          <!-- Boutons Panier & WhatsApp en Ligne Compacte -->
           <div class="card-actions-mytek">
             {% if p.stock > 0 %}
             <form action="/cart/add/{{ p.id }}" method="post" class="add-to-cart-form">
               <input type="hidden" name="qty" value="1">
-              <button type="submit" class="btn-add-cart-mytek">
-                <i class="bi bi-cart-plus-fill"></i> AJOUTER AU PANIER
+              <button type="submit" class="btn-add-cart-mytek" title="Ajouter {{ p.name }} au panier">
+                <i class="bi bi-cart-plus-fill"></i> <span>Ajouter</span>
               </button>
             </form>
             
@@ -473,11 +468,11 @@
                target="_blank" 
                class="btn-wa-direct-mytek" 
                title="Commander par WhatsApp">
-              <i class="bi bi-whatsapp"></i> Commander par WhatsApp
+              <i class="bi bi-whatsapp"></i>
             </a>
             {% else %}
             <button class="btn-rupture-mytek" disabled>
-              <i class="bi bi-clock-history"></i> PRODUIT INDISPONIBLE
+              <i class="bi bi-clock-history"></i> Indisponible
             </button>
             {% endif %}
           </div>
@@ -493,6 +488,42 @@
         </div>
         {% endfor %}
       </div>
+
+      <!-- Pagination Ergonomique (Réduit le défilement et améliore la navigation) -->
+      {% if total_pages > 1 %}
+      <nav class="mytek-pagination-wrap" aria-label="Pagination Catalogue">
+        <div class="pagination-info">
+          Page <strong>{{ page }}</strong> sur <strong>{{ total_pages }}</strong> ({{ total_products }} produits)
+        </div>
+        <div class="pagination-buttons">
+          {% if page > 1 %}
+          <a href="{{ url_for('index', page=page-1, per_page=per_page, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="page-link-btn prev-btn">
+            <i class="bi bi-chevron-left"></i> Précédent
+          </a>
+          {% endif %}
+
+          {% for p_num in range(1, total_pages + 1) %}
+            {% if p_num == page %}
+              <span class="page-link-btn active">{{ p_num }}</span>
+            {% else %}
+              <a href="{{ url_for('index', page=p_num, per_page=per_page, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="page-link-btn">{{ p_num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page < total_pages %}
+          <a href="{{ url_for('index', page=page+1, per_page=per_page, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="page-link-btn next-btn">
+            Suivant <i class="bi bi-chevron-right"></i>
+          </a>
+          {% endif %}
+        </div>
+        <div class="pagination-per-page">
+          <span class="per-page-label">Par page :</span>
+          <a href="{{ url_for('index', per_page=12, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="per-page-pill {% if per_page == 12 %}active{% endif %}">12</a>
+          <a href="{{ url_for('index', per_page=24, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="per-page-pill {% if per_page == 24 %}active{% endif %}">24</a>
+          <a href="{{ url_for('index', per_page=0, category=selected_category, search=search, sort=sort, min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), in_stock=in_stock, brand=selected_brand) }}" class="per-page-pill {% if per_page == 0 %}active{% endif %}">Tous</a>
+        </div>
+      </nav>
+      {% endif %}
 
     </main>
 
