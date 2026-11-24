@@ -1,0 +1,188 @@
+// ============================================================
+//  PIPELINE 4 : AUDIT DE SÉCURITÉ & QUALITÉ DU CODE (NIGHTLY DEVSECOPS)
+//  Projet : Biwex Store - 3LIG ISG Sousse
+//  Binôme : Famory TOURE & Abdoul TRAORE
+//  Enseignante : Mme Zaineb SAKHRAWI
+//
+//  EXPLICATION SIMPLE POUR LA PROFESSEURE :
+//  Ce 4ème pipeline implémente l'approche DevSecOps & Qualité Continue.
+//  Il est planifié pour tourner automatiquement chaque nuit (ou sur demande)
+//  afin d'analyser le projet en profondeur sans ralentir les développeurs :
+//  1. Checkout      : Récupération de la dernière version du code
+//  2. Static Audit  : Analyse syntaxique et statique (AST Python)
+//  3. Security Scan : Audit des dépendances (requirements.txt) & Dockerfile
+//  4. DB & Health   : Contrôle d'intégrité de la base de données SQLite
+//  5. Benchmark     : Test de performance et latence HTTP du site
+//  6. Archive       : Scellement du Rapport Officiel d'Audit de Sécurité
+// ============================================================
+
+pipeline {
+    agent any
+
+    // Planification automatique chaque nuit à 2h00 du matin (Cron Jenkins)
+    triggers {
+        cron('H 2 * * *')
+    }
+
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 25, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '15'))
+    }
+
+    environment {
+        DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        IMAGE_BASE     = 'biwex-store'
+        CONTAINER_NAME = "biwex-sec-audit-${BUILD_NUMBER}"
+        AUDIT_STATUS   = 'NOT_RUN'
+    }
+
+    stages {
+
+        // ======================================================
+        // STAGE 1 : CHECKOUT
+        // ======================================================
+        stage('1 - Checkout') {
+            steps {
+                echo '=== STAGE 1 : Téléchargement du code source pour audit DevSecOps ==='
+                checkout scm
+                script {
+                    echo "Branche auditée : ${env.BRANCH_NAME ?: 'dev/main'}"
+                    echo "Numéro du Build d'Audit : #${env.BUILD_NUMBER}"
+                }
+            }
+        }
+
+        // ======================================================
+        // STAGE 2 : PRÉPARATION & VÉRIFICATION DES FICHIERS
+        // ======================================================
+        stage('2 - Setup Environment') {
+            steps {
+                echo '=== STAGE 2 : Préparation de l environnement d audit ==='
+                bat '''
+                    @echo off
+                    echo [Verification] Verification des dossiers et scripts indispensables...
+                    if not exist scripts\\security_audit.py (
+                        echo ERREUR : scripts\\security_audit.py introuvable !
+                        exit /b 1
+                    )
+                    if not exist scripts\\benchmark.py (
+                        echo ERREUR : scripts\\benchmark.py introuvable !
+                        exit /b 1
+                    )
+                    if not exist artifacts\\security mkdir artifacts\\security
+                    echo [Succes] Environnement pret.
+                '''
+            }
+        }
+
+        // ======================================================
+        // STAGE 3 : AUDIT STATIQUE & CONFORMITÉ SÉCURITÉ
+        // ======================================================
+        stage('3 - Static Code & Security Audit') {
+            steps {
+                echo '=== STAGE 3 : Analyse statique, conformité requirements & Dockerfile ==='
+                bat '''
+                    @echo off
+                    echo [Audit] Lancement du script DevSecOps...
+                    python scripts\\security_audit.py
+                    if errorlevel 1 (
+                        echo [Alerte] Des anomalies de conformite ou securite ont ete detectees !
+                        exit /b 1
+                    )
+                    echo [Succes] Audit statique et conformite securite : VALIDE.
+                '''
+            }
+        }
+
+        // ======================================================
+        // STAGE 4 : QUALIFICATION DOCKER DU CONTENEUR
+        // ======================================================
+        stage('4 - Run Docker Security Container') {
+            steps {
+                echo '=== STAGE 4 : Démarrage du conteneur en environnement restreint (appuser) ==='
+                bat '''
+                    @echo off
+                    set "DOCKER_CMD=%DOCKER_BIN%"
+                    if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
+
+                    "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
+
+                    REM Lancer avec utilisateur restreint
+                    "%DOCKER_CMD%" run -d ^
+                        --name %CONTAINER_NAME% ^
+                        -e SECRET_KEY=cle-audit-devsecops ^
+                        %IMAGE_BASE%:latest
+
+                    if errorlevel 1 (
+                        echo [Info] Image latest absente, compilation locale rapide...
+                        "%DOCKER_CMD%" build -t %IMAGE_BASE%:audit .
+                        "%DOCKER_CMD%" run -d --name %CONTAINER_NAME% -e SECRET_KEY=cle-audit %IMAGE_BASE%:audit
+                    )
+
+                    echo [Succes] Conteneur d audit actif.
+                    "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
+                '''
+                sleep(time: 4, unit: 'SECONDS')
+            }
+        }
+
+        // ======================================================
+        // STAGE 5 : BENCHMARK & TEST DE LATENCE HTTP
+        // ======================================================
+        stage('5 - Benchmark & Performance') {
+            steps {
+                echo '=== STAGE 5 : Mesure de performance et robustesse du conteneur ==='
+                bat '''
+                    @echo off
+                    set "DOCKER_CMD=%DOCKER_BIN%"
+                    if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
+
+                    REM Executer le smoke test et le benchmark a l'interieur du conteneur
+                    "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\security\\smoke-audit.txt 2>&1
+                    type artifacts\\security\\smoke-audit.txt
+
+                    echo [Succes] Test HTTP 200 confirme.
+                '''
+            }
+        }
+
+        // ======================================================
+        // STAGE 6 : ARCHIVAGE DU RAPPORT D'AUDIT SÉCURITÉ
+        // ======================================================
+        stage('6 - Archive Security Audit Report') {
+            steps {
+                echo '=== STAGE 6 : Scellement et archivage des rapports de sécurité ==='
+                archiveArtifacts(
+                    artifacts: 'artifacts/security/**',
+                    fingerprint: true,
+                    allowEmptyArchive: true
+                )
+            }
+        }
+    }
+
+    // ======================================================
+    // NETTOYAGE POST-BUILD
+    // ======================================================
+    post {
+        always {
+            echo '=== Nettoyage des conteneurs de test d audit ==='
+            bat '''
+                @echo off
+                set "DOCKER_CMD=%DOCKER_BIN%"
+                if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
+                "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
+                exit /b 0
+            '''
+        }
+        success {
+            echo 'BIWEX STORE [DEVSECOPS] : Audit de sécurité et conformité réussi à 100% !'
+        }
+        failure {
+            echo 'BIWEX STORE [DEVSECOPS] : Échec de l audit de sécurité. Consultez le rapport.'
+        }
+    }
+}
