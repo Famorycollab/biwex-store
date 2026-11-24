@@ -9,9 +9,9 @@
 //  Il est planifié pour tourner automatiquement chaque nuit (ou sur demande)
 //  afin d'analyser le projet en profondeur sans ralentir les développeurs :
 //  1. Checkout      : Récupération de la dernière version du code
-//  2. Static Audit  : Analyse syntaxique et statique (AST Python)
-//  3. Security Scan : Audit des dépendances (requirements.txt) & Dockerfile
-//  4. DB & Health   : Contrôle d'intégrité de la base de données SQLite
+//  2. Setup         : Détection automatique du binaire Python et de Docker
+//  3. Static Audit  : Analyse syntaxique et statique (AST Python)
+//  4. Docker Run    : Qualification dans le conteneur sécurisé (appuser)
 //  5. Benchmark     : Test de performance et latence HTTP du site
 //  6. Archive       : Scellement du Rapport Officiel d'Audit de Sécurité
 // ============================================================
@@ -34,6 +34,7 @@ pipeline {
 
     environment {
         DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        PYTHON_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\Python\\Python311\\python.exe'
         IMAGE_BASE     = 'biwex-store'
         CONTAINER_NAME = "biwex-sec-audit-${BUILD_NUMBER}"
         AUDIT_STATUS   = 'NOT_RUN'
@@ -86,8 +87,11 @@ pipeline {
                 echo '=== STAGE 3 : Analyse statique, conformité requirements & Dockerfile ==='
                 bat '''
                     @echo off
-                    echo [Audit] Lancement du script DevSecOps...
-                    python scripts\\security_audit.py
+                    set "PY_CMD=%PYTHON_BIN%"
+                    if not exist "%PY_CMD%" set "PY_CMD=python"
+
+                    echo [Audit] Lancement du script DevSecOps avec "%PY_CMD%"...
+                    "%PY_CMD%" scripts\\security_audit.py
                     if errorlevel 1 (
                         echo [Alerte] Des anomalies de conformite ou securite ont ete detectees !
                         exit /b 1
@@ -110,14 +114,14 @@ pipeline {
 
                     "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                    REM Lancer avec utilisateur restreint
+                    REM Lancer le conteneur avec l image latest existante
                     "%DOCKER_CMD%" run -d ^
                         --name %CONTAINER_NAME% ^
                         -e SECRET_KEY=cle-audit-devsecops ^
                         %IMAGE_BASE%:latest
 
                     if errorlevel 1 (
-                        echo [Info] Image latest absente, compilation locale rapide...
+                        echo [Info] Image latest non prete, compilation locale...
                         "%DOCKER_CMD%" build -t %IMAGE_BASE%:audit .
                         "%DOCKER_CMD%" run -d --name %CONTAINER_NAME% -e SECRET_KEY=cle-audit %IMAGE_BASE%:audit
                     )
@@ -140,7 +144,7 @@ pipeline {
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    REM Executer le smoke test et le benchmark a l'interieur du conteneur
+                    REM Executer le smoke test a l interieur du conteneur
                     "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\security\\smoke-audit.txt 2>&1
                     type artifacts\\security\\smoke-audit.txt
 
