@@ -193,7 +193,8 @@ pipeline {
                     echo [Succes] Conteneur de release actif.
                     "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
-                sleep(time: 5, unit: 'SECONDS')
+                // Attente rapide de 3 secondes pour initialiser Gunicorn
+                sleep(time: 3, unit: 'SECONDS')
             }
         }
 
@@ -206,9 +207,9 @@ pipeline {
                 echo '=== STAGE 5 : Smoke Test d homologation de la release ==='
                 script {
                     try {
-                        // Jusqu'a 20 tentatives pour etre certain que la production est prete
-                        retry(20) {
-                            sleep(time: 2, unit: 'SECONDS')
+                        // Jusqu a 10 tentatives rapides (1s de délai)
+                        retry(10) {
+                            sleep(time: 1, unit: 'SECONDS')
                             bat '''
                                 @echo off
                                 set "DOCKER_CMD=%DOCKER_BIN%"
