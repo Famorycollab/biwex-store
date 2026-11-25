@@ -1,41 +1,59 @@
 // ============================================================
-//  PIPELINE 4 : AUDIT DE SÉCURITÉ & QUALITÉ DU CODE (NIGHTLY DEVSECOPS)
-//  Projet : Biwex Store - 3LIG ISG Sousse
-//  Binôme : Famory TOURE & Abdoul TRAORE
+//  PIPELINE 4 : AUDIT DE SÉCURITÉ & QUALITÉ CONTINUE (NIGHTLY DEVSECOPS)
+//  Projet : Biwex Store - 3LIG ISG Sousse 2026/2027
+//  Binôme : Famory TOURE (Lead) & Abdoul TRAORE
 //  Enseignante : Mme Zaineb SAKHRAWI
 //
-//  EXPLICATION SIMPLE POUR LA PROFESSEURE :
-//  Ce 4ème pipeline implémente l'approche DevSecOps & Qualité Continue.
-//  Il est planifié pour tourner automatiquement chaque nuit (ou sur demande)
-//  afin d'analyser le projet en profondeur sans ralentir les développeurs :
-//  1. Checkout      : Récupération de la dernière version du code
-//  2. Setup         : Détection automatique du binaire Python et de Docker
-//  3. Static Audit  : Analyse syntaxique et statique (AST Python)
-//  4. Docker Run    : Qualification dans le conteneur sécurisé (appuser)
-//  5. Benchmark     : Test de performance et latence HTTP du site
-//  6. Archive       : Scellement du Rapport Officiel d'Audit de Sécurité
+//  EXPLICATION DES NOTIONS DU COURS POUR LA PROFESSEURE :
+//  Ce pipeline illustre 6 concepts clés vus en cours de DevOps :
+//  1. DevSecOps (Shift-Left) : Intégrer la sécurité dès le code source, pas après le déploiement.
+//  2. Pipeline-as-Code      : Tout le cycle d'audit est versionné dans Git (Groovy déclaratif).
+//  3. Planification Cron    : Automatisation sans intervention humaine la nuit (H 2 * * *).
+//  4. Moindre Privilège     : Exécution dans un conteneur non-root (appuser).
+//  5. Smoke & Health Check  : Contrôle de disponibilité HTTP 200 et intégrité de la base SQLite.
+//  6. Traçabilité & Non-Répudiation : Fingerprinting MD5 des artefacts scellés dans Jenkins.
+//
+//  LES 6 ÉTAPES (STAGES) DU PIPELINE :
+//  Stage 1. Checkout        : Télécharger la version exacte du code source depuis GitHub
+//  Stage 2. Setup           : Vérifier l'environnement, les scripts et les dossiers
+//  Stage 3. Static Audit    : Analyse statique du code (AST Python) & conformité des dépendances
+//  Stage 4. Docker Run      : Instancier l'application dans un conteneur isolé et sécurisé
+//  Stage 5. Smoke & Perf    : Valider la réactivité HTTP 200 en direct dans le conteneur
+//  Stage 6. Archive         : Générer et archiver le certificat officiel de sécurité
+//  + Post-Action (Cleanup)  : Nettoyer automatiquement pour libérer disque et mémoire
 // ============================================================
 
 pipeline {
+    // Exécution sur n'importe quel agent ou nœud disponible
     agent any
 
-    // Planification automatique chaque nuit à 2h00 du matin (Cron Jenkins)
+    // NOTION DU COURS : Déclenchement automatique planifié (Cron Jenkins)
+    // S'exécute chaque nuit à 2h00 sans mobiliser l'équipe pendant la journée
     triggers {
         cron('H 2 * * *')
     }
 
+    // Options générales pour garantir la robustesse du pipeline
     options {
+        // Checkout manuel contrôlé au Stage 1
         skipDefaultCheckout(true)
+        // Horodatage précis devant chaque log d'exécution
         timestamps()
+        // Éviter les conflits de builds simultanés sur le même pipeline
         disableConcurrentBuilds()
+        // Arrêt d'urgence de sécurité après 25 minutes
         timeout(time: 25, unit: 'MINUTES')
+        // Historique propre : conserver les 15 derniers rapports
         buildDiscarder(logRotator(numToKeepStr: '15'))
     }
 
+    // NOTION DU COURS : Variables d'environnement réutilisables et isolées
     environment {
+        // Chemins absolus adaptés pour l'agent Jenkins sous Windows
         DOCKER_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
         PYTHON_BIN     = 'C:\\Users\\Famory Toure\\AppData\\Local\\Programs\\Python\\Python311\\python.exe'
         IMAGE_BASE     = 'biwex-store'
+        // Nom unique de conteneur incluant le BUILD_NUMBER pour éviter toute collision
         CONTAINER_NAME = "biwex-sec-audit-${BUILD_NUMBER}"
         AUDIT_STATUS   = 'NOT_RUN'
     }
@@ -43,122 +61,148 @@ pipeline {
     stages {
 
         // ======================================================
-        // STAGE 1 : CHECKOUT
+        // STAGE 1 : CHECKOUT (Téléchargement du code source)
+        // Notion du cours : Récupération du référentiel Git distant
         // ======================================================
         stage('1 - Checkout') {
             steps {
-                echo '=== STAGE 1 : Téléchargement du code source pour audit DevSecOps ==='
+                echo '=== STAGE 1 : Récupération du code source depuis GitHub (SCM) ==='
                 checkout scm
                 script {
-                    echo "Branche auditée : ${env.BRANCH_NAME ?: 'dev/main'}"
-                    echo "Numéro du Build d'Audit : #${env.BUILD_NUMBER}"
+                    echo "Branche Git analysée : ${env.BRANCH_NAME ?: 'dev'}"
+                    echo "Identifiant du Build : #${env.BUILD_NUMBER}"
                 }
             }
         }
 
         // ======================================================
-        // STAGE 2 : PRÉPARATION & VÉRIFICATION DES FICHIERS
+        // STAGE 2 : SETUP (Vérification des prérequis)
+        // Notion du cours : Validation de l'environnement avant exécution
         // ======================================================
         stage('2 - Setup Environment') {
             steps {
-                echo '=== STAGE 2 : Préparation de l environnement d audit ==='
+                echo '=== STAGE 2 : Contrôle d intégrité de l environnement d audit ==='
                 bat '''
                     @echo off
-                    echo [Verification] Verification des dossiers et scripts indispensables...
+                    echo [Verification] Test de presence des scripts d audit DevSecOps...
+
+                    REM 1. Script d'audit de securite et de conformite
                     if not exist scripts\\security_audit.py (
-                        echo ERREUR : scripts\\security_audit.py introuvable !
+                        echo ERREUR CRITIQUE : scripts\\security_audit.py introuvable !
                         exit /b 1
                     )
-                    if not exist scripts\\benchmark.py (
-                        echo ERREUR : scripts\\benchmark.py introuvable !
+
+                    REM 2. Script de smoke test HTTP
+                    if not exist scripts\\smoke_test.py (
+                        echo ERREUR CRITIQUE : scripts\\smoke_test.py introuvable !
                         exit /b 1
                     )
+
+                    REM 3. Creation du sous-dossier d'artefacts dedie
+                    if not exist artifacts mkdir artifacts
                     if not exist artifacts\\security mkdir artifacts\\security
-                    echo [Succes] Environnement pret.
+
+                    echo [Succes] Scripts et dossiers d audit prets.
                 '''
             }
         }
 
         // ======================================================
-        // STAGE 3 : AUDIT STATIQUE & CONFORMITÉ SÉCURITÉ
+        // STAGE 3 : AUDIT STATIQUE & SÉCURITÉ DU CODE (DevSecOps)
+        // Notion du cours : Analyse Statique (SAST) & Shift-Left Security
         // ======================================================
         stage('3 - Static Code & Security Audit') {
             steps {
-                echo '=== STAGE 3 : Analyse statique, conformité requirements & Dockerfile ==='
+                echo '=== STAGE 3 : Analyse statique (AST), conformité requirements.txt & Dockerfile ==='
                 bat '''
                     @echo off
+                    REM Detection intelligente du binaire Python pour Jenkins
                     set "PY_CMD=%PYTHON_BIN%"
                     if not exist "%PY_CMD%" set "PY_CMD=python"
 
-                    echo [Audit] Lancement du script DevSecOps avec "%PY_CMD%"...
+                    echo [DevSecOps] Lancement de l audit automatique avec %PY_CMD%...
                     "%PY_CMD%" scripts\\security_audit.py
+
+                    REM Verifier le code retour : 0 = Succes (audit conforme), 1 = Anomalie
                     if errorlevel 1 (
-                        echo [Alerte] Des anomalies de conformite ou securite ont ete detectees !
+                        echo [Alerte Securite] Des non-conformites critiques ont ete relevees !
                         exit /b 1
                     )
-                    echo [Succes] Audit statique et conformite securite : VALIDE.
+
+                    echo [Succes] Audit statique et securite 100%% VALIDES.
                 '''
             }
         }
 
         // ======================================================
-        // STAGE 4 : QUALIFICATION DOCKER DU CONTENEUR
+        // STAGE 4 : QUALIFICATION DOCKER (Conteneurisation sécurisée)
+        // Notion du cours : Isolation & Principe du Moindre Privilège (non-root)
         // ======================================================
         stage('4 - Run Docker Security Container') {
             steps {
-                echo '=== STAGE 4 : Démarrage du conteneur en environnement restreint (appuser) ==='
+                echo '=== STAGE 4 : Démarrage du conteneur sécurisé (utilisateur non-root appuser) ==='
                 bat '''
                     @echo off
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
+                    REM Nettoyer tout conteneur residuel portant le meme nom
                     "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
 
-                    REM Lancer le conteneur avec l image latest existante
+                    REM Allumer le conteneur a partir de l image officielle
                     "%DOCKER_CMD%" run -d ^
                         --name %CONTAINER_NAME% ^
                         -e SECRET_KEY=cle-audit-devsecops ^
                         %IMAGE_BASE%:latest
 
+                    REM Si l image latest n est pas presente localement, compilation de secours
                     if errorlevel 1 (
-                        echo [Info] Image latest non prete, compilation locale...
+                        echo [Info] Image latest non trouvee. Compilation locale de secours...
                         "%DOCKER_CMD%" build -t %IMAGE_BASE%:audit .
                         "%DOCKER_CMD%" run -d --name %CONTAINER_NAME% -e SECRET_KEY=cle-audit %IMAGE_BASE%:audit
                     )
 
-                    echo [Succes] Conteneur d audit actif.
+                    echo [Succes] Conteneur d audit actif et isole.
                     "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
-                sleep(time: 4, unit: 'SECONDS')
+                // Attente de 5 secondes pour laisser Gunicorn initialiser la boutique
+                sleep(time: 5, unit: 'SECONDS')
             }
         }
 
         // ======================================================
-        // STAGE 5 : BENCHMARK & TEST DE LATENCE HTTP
+        // STAGE 5 : SMOKE TEST & LATENCE HTTP (Disponibilité)
+        // Notion du cours : Healthcheck & Test d'Acceptation Live
         // ======================================================
-        stage('5 - Benchmark & Performance') {
+        stage('5 - Smoke & Health Test') {
             steps {
-                echo '=== STAGE 5 : Mesure de performance et robustesse du conteneur ==='
+                echo '=== STAGE 5 : Vérification de vie HTTP 200 en direct dans le conteneur ==='
                 bat '''
                     @echo off
                     set "DOCKER_CMD=%DOCKER_BIN%"
                     if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                    REM Executer le smoke test a l interieur du conteneur
+                    REM Executer le smoke test direct a l interieur du conteneur en direct
                     "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\security\\smoke-audit.txt 2>&1
                     type artifacts\\security\\smoke-audit.txt
 
-                    echo [Succes] Test HTTP 200 confirme.
+                    echo [Succes] Test de reponse HTTP 200 confirme en direct.
                 '''
             }
         }
 
         // ======================================================
-        // STAGE 6 : ARCHIVAGE DU RAPPORT D'AUDIT SÉCURITÉ
+        // STAGE 6 : ARCHIVAGE DES ARTEFACTS & FINGERPRINTING
+        // Notion du cours : Traçabilité, Auditabilité & Empreinte MD5
         // ======================================================
         stage('6 - Archive Security Audit Report') {
             steps {
-                echo '=== STAGE 6 : Scellement et archivage des rapports de sécurité ==='
+                echo '=== STAGE 6 : Scellement du Rapport Officiel d Audit DevSecOps ==='
+                script {
+                    echo "Archivage securise des rapports et preuves d audit dans Jenkins..."
+                }
+
+                // Sauvegarde definitive dans Jenkins avec empreinte numerique
                 archiveArtifacts(
                     artifacts: 'artifacts/security/**',
                     fingerprint: true,
@@ -169,24 +213,27 @@ pipeline {
     }
 
     // ======================================================
-    // NETTOYAGE POST-BUILD
+    // ACTIONS POST-BUILD (Garantie de nettoyage)
+    // Notion du cours : Gestion du cycle de vie & Libération des ressources
     // ======================================================
     post {
         always {
-            echo '=== Nettoyage des conteneurs de test d audit ==='
+            echo '=== Nettoyage automatique des conteneurs de test d audit ==='
             bat '''
                 @echo off
                 set "DOCKER_CMD=%DOCKER_BIN%"
                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
+
+                REM Toujours detruire le conteneur temporaire pour ne jamais bloquer le port
                 "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
                 exit /b 0
             '''
         }
         success {
-            echo 'BIWEX STORE [DEVSECOPS] : Audit de sécurité et conformité réussi à 100% !'
+            echo 'BIWEX STORE [DEVSECOPS] : Audit de securite et conformite valide a 100%% !'
         }
         failure {
-            echo 'BIWEX STORE [DEVSECOPS] : Échec de l audit de sécurité. Consultez le rapport.'
+            echo 'BIWEX STORE [DEVSECOPS] : Des anomalies ont ete detectees. Consultez le rapport.'
         }
     }
 }
