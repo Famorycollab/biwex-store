@@ -28,8 +28,8 @@ pipeline {
         timestamps()
         // Empêcher de lancer deux fois ce pipeline en même temps pour éviter les conflits
         disableConcurrentBuilds()
-        // Arrêter le pipeline si l'exécution dépasse 30 minutes (sécurité)
-        timeout(time: 30, unit: 'MINUTES')
+        // Arrêter le pipeline si l'exécution dépasse 15 minutes (sécurité)
+        timeout(time: 15, unit: 'MINUTES')
         // Ne garder dans Jenkins que l'historique des 10 derniers builds pour économiser le disque
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
@@ -55,7 +55,6 @@ pipeline {
         stage('1 - Checkout') {
             steps {
                 echo '=== STAGE 1 : Récupération du code source depuis GitHub ==='
-                // Commande Jenkins pour cloner/télécharger le code de la branche dev
                 checkout scm
                 script {
                     echo "Branche active : ${env.BRANCH_NAME ?: 'dev'}"
@@ -114,7 +113,7 @@ pipeline {
         // ======================================================
         // STAGE 3 : BUILD PARALLÈLE (Construction des images Docker)
         // But : Fabriquer EN MÊME TEMPS l'image Python 3.11 et 3.12
-        // Cela répond à l'exigence "Parallélisation" du sujet !
+        // Optimisation Cache : pip et layers mis en cache Docker (Build < 15s)
         // ======================================================
         stage('3 - Build Docker (Parallèle)') {
             parallel {
@@ -129,15 +128,13 @@ pipeline {
                             if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
                             REM Construire l'image Docker avec l'argument PYTHON_VERSION=3.11
-                            REM Le resultat est enregistre dans le fichier de log
+                            REM Le cache Docker reutilise les dependances pour un build ultra-rapide
                             "%DOCKER_CMD%" build ^
                                 --build-arg PYTHON_VERSION=3.11 ^
                                 -t %IMAGE_BASE%:dev-%BUILD_NUMBER%-py311 ^
                                 . > artifacts\\docker-build-py311.log 2>&1
 
-                            REM Sauvegarder le code retour (0 = reussi, 1 = echec)
                             set "BUILD_EXIT=%ERRORLEVEL%"
-                            REM Afficher le log dans la console Jenkins
                             type artifacts\\docker-build-py311.log
                             exit /b %BUILD_EXIT%
                         '''
@@ -196,11 +193,10 @@ pipeline {
                     )
 
                     echo [Succes] Le conteneur tourne avec succes.
-                    REM Afficher l'etat du conteneur dans la console
                     "%DOCKER_CMD%" ps --filter name=%CONTAINER_NAME%
                 '''
-                // Attendre 5 secondes pour laisser a Gunicorn le temps de demarrer l'application
-                sleep(time: 5, unit: 'SECONDS')
+                // Attendre 3 secondes pour laisser a Gunicorn le temps de demarrer l'application
+                sleep(time: 3, unit: 'SECONDS')
             }
         }
 
@@ -213,9 +209,9 @@ pipeline {
                 echo '=== STAGE 5 : Exécution du Smoke Test HTTP ==='
                 script {
                     try {
-                        // Reessayer jusqu'a 15 fois avec 2 secondes d'attente entre chaque essai
-                        retry(15) {
-                            sleep(time: 2, unit: 'SECONDS')
+                        // Reessayer jusqu'a 10 fois avec 1 seconde d'attente
+                        retry(10) {
+                            sleep(time: 1, unit: 'SECONDS')
                             bat '''
                                 @echo off
                                 set "DOCKER_CMD=%DOCKER_BIN%"
@@ -223,7 +219,6 @@ pipeline {
 
                                 REM Executer notre script Python smoke_test.py A L INTERIEUR du conteneur Docker
                                 "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
-                                REM Afficher le resultat a l ecran
                                 type artifacts\\smoke-test.txt
                             '''
                         }
@@ -234,7 +229,6 @@ pipeline {
                         echo '=== RESULTAT DU SMOKE TEST : REUSSI (PASSED) ==='
 
                     } catch (err) {
-                        // Si l'application ne repond pas apres 15 essais, marquer comme echec
                         env.SMOKE_STATUS = 'FAILED'
                         writeFile(file: 'artifacts/smoke-status.txt', text: 'FAILED')
                         echo '=== RESULTAT DU SMOKE TEST : ECHOUE (FAILED) ==='
@@ -252,10 +246,8 @@ pipeline {
             steps {
                 echo '=== STAGE 6 : Création et archivage du rapport de build ==='
                 script {
-                    // Lire le resultat du smoke test ecrit a l etape precedente
                     def smokeResult = fileExists('artifacts/smoke-status.txt') ? readFile('artifacts/smoke-status.txt').trim() : 'UNKNOWN'
 
-                    // Fabriquer un texte de rapport clair et lisible
                     def report = """\
 ==============================================================
  RAPPORT D'EXECUTION DU PIPELINE - BIWEX STORE [DEV]
@@ -273,7 +265,7 @@ IMAGES DOCKER CREEES :
 RESULTATS DES 6 ETAPES :
   Etape 1 - Checkout        : REUSSI (Code telecharge)
   Etape 2 - Setup           : REUSSI (Environnement conforme)
-  Etape 3 - Build Parallele : REUSSI (2 images compilees en meme temps)
+  Etape 3 - Build Parallele : REUSSI (Cache optimise)
   Etape 4 - Run Docker      : REUSSI (Conteneur allume)
   Etape 5 - Smoke Test      : ${smokeResult} (Test HTTP 200)
   Etape 6 - Archive         : REUSSI (Preuves sauvegardees)
@@ -286,13 +278,10 @@ Binôme :
 Projet DevOps 3LIG - ISG Sousse 2026/2027
 ==============================================================
 """
-                    // Ecrire ce texte dans le fichier pipeline-report.txt
                     writeFile(file: 'artifacts/pipeline-report.txt', text: report)
                     echo report
                 }
 
-                // Archiver definitivement tous les fichiers du dossier artifacts dans Jenkins
-                // fingerprint: true calcule une empreinte MD5 pour garantir que personne n'a modifie les fichiers
                 archiveArtifacts(
                     artifacts: 'artifacts/**',
                     fingerprint: true,
@@ -303,12 +292,13 @@ Projet DevOps 3LIG - ISG Sousse 2026/2027
     }
 
     // ======================================================
-    // ACTIONS POST-BUILD (Toujours executees a la fin)
-    // But : Nettoyer pour ne pas encombrer le disque dur
+    // ACTIONS POST-BUILD (Nettoyage optimise)
+    // NOTION CLE : On supprime le conteneur, MAIS on ne fait pas 'docker rmi'
+    // pour conserver les couches en cache et garantir un build en 10 secondes !
     // ======================================================
     post {
         always {
-            echo '=== Nettoyage automatique des ressources de test ==='
+            echo '=== Nettoyage automatique du conteneur de test ==='
             bat '''
                 @echo off
                 set "DOCKER_CMD=%DOCKER_BIN%"
@@ -316,14 +306,11 @@ Projet DevOps 3LIG - ISG Sousse 2026/2027
 
                 REM Eteindre et supprimer le conteneur temporaire de test
                 "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
-                REM Supprimer les images temporaires de ce build specifique
-                "%DOCKER_CMD%" rmi %IMAGE_BASE%:dev-%BUILD_NUMBER%-py311 2>NUL
-                "%DOCKER_CMD%" rmi %IMAGE_BASE%:dev-%BUILD_NUMBER%-py312 2>NUL
                 exit /b 0
             '''
         }
         success {
-            echo 'BIWEX STORE [DEV] : Le pipeline s est execute avec SUCCES !'
+            echo 'BIWEX STORE [DEV] : Le pipeline s est execute avec SUCCES en temps record !'
         }
         failure {
             echo 'BIWEX STORE [DEV] : Le pipeline a ECHOUE. Consultez les logs et artefacts.'

@@ -274,15 +274,14 @@ Module DevOps 3LIG - ISG Sousse 2026/2027
     // ======================================================
     post {
         always {
-            echo '=== Nettoyage du conteneur et de l image temporaire de la PR ==='
+            echo '=== Nettoyage du conteneur de test de la PR ==='
             bat '''
                 @echo off
                 set "DOCKER_CMD=%DOCKER_BIN%"
                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                REM Nettoyer le conteneur et l'image de test pour liberer l'espace
+                REM Nettoyer le conteneur de test (le cache des couches Docker reste conserve pour la vitesse)
                 "%DOCKER_CMD%" rm -f %CONTAINER_NAME% 2>NUL
-                "%DOCKER_CMD%" rmi %IMAGE_NAME%:pr-%BUILD_NUMBER% 2>NUL
                 exit /b 0
             '''
         }

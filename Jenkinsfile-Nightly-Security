@@ -1,10 +1,7 @@
 // ============================================================
 //  PIPELINE 4 : AUDIT DE SÉCURITÉ & QUALITÉ CONTINUE (NIGHTLY DEVSECOPS)
-//  Projet : Biwex Store - 3LIG ISG Sousse 2026/2027
-//  Binôme : Famory TOURE (Lead) & Abdoul TRAORE
-//  Enseignante : Mme Zaineb SAKHRAWI
+//  
 //
-//  EXPLICATION DES NOTIONS DU COURS POUR LA PROFESSEURE :
 //  Ce pipeline illustre 6 concepts clés vus en cours de DevOps :
 //  1. DevSecOps (Shift-Left) : Intégrer la sécurité dès le code source, pas après le déploiement.
 //  2. Pipeline-as-Code      : Tout le cycle d'audit est versionné dans Git (Groovy déclaratif).
