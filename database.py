@@ -1,30 +1,29 @@
 """
-╔══════════════════════════════════════════════════════════════╗
-║               DATABASE.PY — BIWEX STORE                     ║
-║                                                              ║
-║  Définition des MODÈLES de données (ORM SQLAlchemy)         ║
-║                                                              ║
-║  Qu'est-ce qu'un ORM ?                                      ║
-║    ORM = Object-Relational Mapping                          ║
-║    → Au lieu d'écrire du SQL brut, on manipule des objets    ║
-║      Python qui représentent les tables de la base.          ║
-║    → SQLAlchemy traduit automatiquement en requêtes SQL.     ║
-║                                                              ║
-║  Exemple : User.query.filter_by(email='x').first()          ║
-║            → SELECT * FROM user WHERE email='x' LIMIT 1     ║
-║                                                              ║
-║  Modèles définis ici :                                      ║
-║    1. User       — Utilisateurs (clients + admins)          ║
-║    2. Product    — Produits du catalogue                     ║
-║    3. Order      — Commandes des clients                    ║
-║    4. OrderItem  — Ligne de détail d'une commande           ║
-║    5. Review     — Avis et notes sur les produits           ║
-║    6. Wishlist   — Liste de souhaits par utilisateur        ║
-║    7. Newsletter — Emails inscrits à la newsletter          ║
-║                                                              ║
-║  Auteurs : Famory TOURE & Abdoul TRAORE                     ║
-║  Projet  : DevOps 3LIG — ISG Sousse 2026/2027              ║
-╚══════════════════════════════════════════════════════════════╝
+
+               DATABASE.PY — BIWEX STORE                     
+                                                              
+  Définition des MODÈLES de données (ORM SQLAlchemy)         
+                                                              
+  Qu'est-ce qu'un ORM ?                                      
+    ORM = Object-Relational Mapping                          
+    → Au lieu d'écrire du SQL brut, on manipule des objets    
+      Python qui représentent les tables de la base.          
+    → SQLAlchemy traduit automatiquement en requêtes SQL.     
+                                                              
+  Exemple : User.query.filter_by(email='x').first()          
+            → SELECT * FROM user WHERE email='x' LIMIT 1     
+                                                              
+  Modèles définis ici :                                      
+    1. User       — Utilisateurs (clients + admins)          
+    2. Product    — Produits du catalogue                     
+    3. Order      — Commandes des clients                    
+    4. OrderItem  — Ligne de détail d'une commande           
+    5. Review     — Avis et notes sur les produits           
+    6. Wishlist   — Liste de souhaits par utilisateur       
+    7. Newsletter — Emails inscrits à la newsletter          
+                                                              
+  Auteurs : Famory TOURE & Abdoul TRAORE                     
+  Projet  : DevOps 3LIG — ISG Sousse 2026/2027              
 """
 
 # ── IMPORTS ──────────────────────────────────────────────────────
@@ -42,7 +41,6 @@ from datetime import datetime
 db = SQLAlchemy()
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : USER (Utilisateur)
 #
 #  Table SQL générée :
@@ -62,7 +60,6 @@ db = SQLAlchemy()
 #    → is_authenticated : True si l'utilisateur est connecté
 #    → is_active        : True si le compte est actif
 #    → get_id()         : Retourne l'ID pour la session Flask
-# ════════════════════════════════════════════════════════════════
 class User(UserMixin, db.Model):
     # Clé primaire auto-incrémentée (1, 2, 3, ...)
     id = db.Column(db.Integer, primary_key=True)
@@ -147,7 +144,6 @@ class Product(db.Model):
                               cascade='all, delete-orphan')
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : ORDER (Commande d'un client)
 #
 #  Une commande est créée quand le client valide son panier.
@@ -157,7 +153,6 @@ class Product(db.Model):
 #  Statuts possibles :
 #    "En attente" → "Confirmée" → "Expédiée" → "Livrée"
 #    ou "Annulée"
-# ════════════════════════════════════════════════════════════════
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -185,7 +180,6 @@ class Order(db.Model):
                             cascade='all, delete-orphan')
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : ORDERITEM (Ligne de commande)
 #
 #  Chaque ligne représente UN produit dans une commande,
@@ -194,7 +188,6 @@ class Order(db.Model):
 #  Pourquoi stocker le prix ici ?
 #    → Le prix d'un produit peut changer après la commande.
 #    → On garde le prix au moment de l'achat pour l'historique.
-# ════════════════════════════════════════════════════════════════
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -214,13 +207,11 @@ class OrderItem(db.Model):
     product = db.relationship('Product')
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : REVIEW (Avis client sur un produit)
 #
 #  Les avis sont liés à un utilisateur ET à un produit.
 #  Un utilisateur ne peut laisser qu'un seul avis par produit
 #  (vérification dans app.py).
-# ════════════════════════════════════════════════════════════════
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -240,12 +231,10 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : WISHLIST (Liste de souhaits)
 #
 #  Chaque entrée lie un utilisateur à un produit qu'il "aime".
 #  Toggle : cliquer une fois → ajout, cliquer encore → retrait
-# ════════════════════════════════════════════════════════════════
 class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -262,13 +251,11 @@ class Wishlist(db.Model):
     product = db.relationship('Product')
 
 
-# ════════════════════════════════════════════════════════════════
 #  MODÈLE : NEWSLETTER
 #
 #  Table simple qui stocke les emails des personnes inscrites
 #  à la newsletter. Pas de relation avec User car les visiteurs
 #  non-inscrits peuvent aussi s'inscrire.
-# ════════════════════════════════════════════════════════════════
 class Newsletter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 

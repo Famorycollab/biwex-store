@@ -11,7 +11,6 @@
  Ici, c'est pareil : on envoie une requête HTTP sur la page d'accueil.
  - Si le serveur répond avec le code HTTP 200 (OK) ➔ C'est PASSED (Réussi).
  - Si le serveur ne répond pas ou renvoie une erreur ➔ C'est FAILED (Échoué).
-============================================================
 """
 
 import sys

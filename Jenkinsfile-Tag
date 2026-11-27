@@ -1,9 +1,7 @@
-// ============================================================
 //  PIPELINE 3 : BUILD VERSIONNÉ SUR TAG (vX.Y.Z)
 //  Projet : Biwex Store - 3LIG ISG Sousse
 //  Binôme : Famory TOURE & Abdoul TRAORE
 //
-//  EXPLICATION SIMPLE POUR LA PROFESSEURE :
 //  Ce pipeline se lance lorsqu'on crée un Tag officiel (ex: v1.0.0, v1.1.0).
 //  Son rôle est de certifier la version de PRODUCTION :
 //  1. Checkout      : Récupérer le code exact du tag
@@ -13,7 +11,6 @@
 //  5. Smoke Test    : Valider que la release fonctionne sans problème
 //  6. Archive       : Sceller le Manifeste officiel de Release dans Jenkins
 //  + Conservation   : ATTENTION, ici on CONSERVE les images officielles de production !
-// ============================================================
 
 pipeline {
     // Exécuter sur l'agent Jenkins disponible
@@ -49,10 +46,8 @@ pipeline {
 
     stages {
 
-        // ======================================================
         // STAGE 1 : CHECKOUT
         // But : Récupérer le code source figé au moment du Tag
-        // ======================================================
         stage('1 - Checkout') {
             steps {
                 echo "=== STAGE 1 : Téléchargement du code source au tag [${env.EFFECTIVE_TAG}] ==="
@@ -64,11 +59,9 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 2 : SETUP & VALIDATION SEMVER (vX.Y.Z)
         // But : Vérifier que le numéro de version respecte la norme internationale
         // Exemple valide : v1.0.0, v1.1.0 / Invalide : version1, test
-        // ======================================================
         stage('2 - Setup') {
             steps {
                 echo '=== STAGE 2 : Contrôle de conformité du Versioning Sémantique (SemVer) ==='
@@ -103,10 +96,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 3 : BUILD VERSIONNÉ PARALLÈLE
         // But : Créer l'image officielle taguée avec la version et latest
-        // ======================================================
         stage('3 - Build Docker Versionné (Parallèle)') {
             parallel {
 
@@ -165,10 +156,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 4 : RUN DOCKER (Test de l'image de Release)
         // But : Démarrer un conteneur avec l'image officielle pour qualification
-        // ======================================================
         stage('4 - Run Docker') {
             steps {
                 echo '=== STAGE 4 : Démarrage du conteneur de qualification release ==='
@@ -197,10 +186,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 5 : SMOKE TEST (Homologation finale)
         // But : Confirmer que la version de release répond 200 OK
-        // ======================================================
         stage('5 - Smoke Test') {
             steps {
                 echo '=== STAGE 5 : Smoke Test d homologation de la release ==='
@@ -233,10 +220,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 6 : ARCHIVE ARTIFACTS (Manifeste officiel de Release)
         // But : Sauvegarder le certificat officiel de publication
-        // ======================================================
         stage('6 - Archive Artifacts') {
             steps {
                 echo '=== STAGE 6 : Génération et scellement du Manifeste officiel ==='
@@ -293,10 +278,8 @@ Enseignante : Mme Zaineb SAKHRAWI
         }
     }
 
-    // ======================================================
     // POST-BUILD : REGLE IMPORTANTE DU SUJET
     // On nettoie le conteneur de test, MAIS on CONSERVE l'image de release !
-    // ======================================================
     post {
         always {
             echo '=== Nettoyage du conteneur de qualification release ==='

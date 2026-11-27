@@ -1,4 +1,3 @@
-// ============================================================
 //  PIPELINE 2 : BUILD COMPLET SUR PUSH (Branche dev)
 //  Projet : Biwex Store - 3LIG ISG Sousse
 //  Binôme : Famory TOURE & Abdoul TRAORE
@@ -14,7 +13,6 @@
 //  5. Smoke Test    : Tester si le site répond HTTP 200 (test réussi)
 //  6. Archive       : Sauvegarder les rapports et preuves dans Jenkins
 //  + Cleanup        : Nettoyer et éteindre le conteneur à la fin
-// ============================================================
 
 pipeline {
     // Exécuter ce pipeline sur n'importe quel ordinateur ou agent Jenkins disponible
@@ -48,10 +46,8 @@ pipeline {
 
     stages {
 
-        // ======================================================
         // STAGE 1 : CHECKOUT (Téléchargement du code)
         // But : Récupérer les fichiers depuis notre dépôt GitHub
-        // ======================================================
         stage('1 - Checkout') {
             steps {
                 echo '=== STAGE 1 : Récupération du code source depuis GitHub ==='
@@ -64,10 +60,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 2 : SETUP (Vérification de l'environnement)
         // But : Vérifier que les fichiers existent et que Docker fonctionne
-        // ======================================================
         stage('2 - Setup') {
             steps {
                 echo '=== STAGE 2 : Vérification des fichiers du projet et de Docker ==='
@@ -111,11 +105,9 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 3 : BUILD PARALLÈLE (Construction des images Docker)
         // But : Fabriquer EN MÊME TEMPS l'image Python 3.11 et 3.12
         // Cela répond à l'exigence "Parallélisation" du sujet !
-        // ======================================================
         stage('3 - Build Docker (Parallèle)') {
             parallel {
 
@@ -168,10 +160,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 4 : RUN DOCKER (Démarrage du conteneur de test)
         // But : Démarrer l'application dans un conteneur isolé
-        // ======================================================
         stage('4 - Run Docker') {
             steps {
                 echo '=== STAGE 4 : Démarrage du conteneur de test ==='
@@ -204,10 +194,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 5 : SMOKE TEST (Vérification rapide du site)
         // But : Tester si l'application répond HTTP 200 (test de vie)
-        // ======================================================
         stage('5 - Smoke Test') {
             steps {
                 echo '=== STAGE 5 : Exécution du Smoke Test HTTP ==='
@@ -244,10 +232,8 @@ pipeline {
             }
         }
 
-        // ======================================================
         // STAGE 6 : ARCHIVE ARTIFACTS (Archivage des preuves)
         // But : Sauvegarder les rapports de test dans Jenkins
-        // ======================================================
         stage('6 - Archive Artifacts') {
             steps {
                 echo '=== STAGE 6 : Création et archivage du rapport de build ==='
@@ -302,10 +288,8 @@ Projet DevOps 3LIG - ISG Sousse 2026/2027
         }
     }
 
-    // ======================================================
     // ACTIONS POST-BUILD (Toujours executees a la fin)
     // But : Nettoyer pour ne pas encombrer le disque dur
-    // ======================================================
     post {
         always {
             echo '=== Nettoyage automatique des ressources de test ==='

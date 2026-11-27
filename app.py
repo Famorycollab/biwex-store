@@ -1301,7 +1301,6 @@ def order_confirmation(id):
     return render_template('order_confirmation.html', order=order, whatsapp_url=whatsapp_url)
 
 
-# ═══════════════════════════════════════════════════════════════
 #                   ROUTES ADMINISTRATION
 #
 #  Toutes ces routes sont protégées par :
@@ -1393,7 +1392,6 @@ def update_order_status(id):
     return redirect(url_for('admin'))
 
 
-# ═══════════════════════════════════════════════════════════════
 #  ENDPOINT HEALTH CHECK
 #
 #  Route spéciale utilisée par Jenkins, Docker et les sondes
@@ -1406,7 +1404,6 @@ def update_order_status(id):
 #
 #  Usage depuis Jenkins ou curl :
 #    curl http://localhost:5000/health → {"status": "healthy", ...}
-# ═══════════════════════════════════════════════════════════════
 # ── ENDPOINT HEALTH CHECK & STATISTIQUES EN TEMPS RÉEL ─────────
 # Route utilisée par Jenkins et les tableaux de bord de supervision
 # pour surveiller l'état, la version et le stock de l'application.
@@ -1431,13 +1428,11 @@ def health_check():
     }), 200
 
 
-# ═══════════════════════════════════════════════════════════════
 #             API REST PUBLIQUE — BIWEX STORE
 #  Développée par : Abdoul TRAORE (Branche feature/abdoul-traore)
 #  Notion de cours : Interopérabilité des Systèmes d'Information
 #  Permet d'échanger des données en JSON avec des applications mobiles,
 #  des partenaires commerciaux ou des tableaux de bord décisionnels.
-# ═══════════════════════════════════════════════════════════════
 
 @app.route('/api/products', methods=['GET'])
 def api_get_products():
@@ -1611,7 +1606,6 @@ def api_export_catalog():
     }), 200
 
 
-# ═══════════════════════════════════════════════════════════════
 #  POINT D'ENTRÉE — Démarrage du serveur de développement
 #
 #  En DÉVELOPPEMENT : python app.py → serveur Flask (debug=True)
@@ -1622,6 +1616,5 @@ def api_export_catalog():
 #    - Les messages d'erreur détaillés dans le navigateur
 #    - Le debugger interactif Werkzeug
 #  → JAMAIS en production (faille de sécurité)
-# ═══════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     app.run(debug=True)

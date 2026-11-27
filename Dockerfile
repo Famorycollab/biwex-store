@@ -1,4 +1,3 @@
-# ============================================================
 #  FICHIER DOCKERFILE - BIWEX STORE
 #  Projet : DevOps 3LIG - ISG Sousse
 #  Binôme : Famory TOURE & Abdoul TRAORE
@@ -8,15 +7,12 @@
 #  - Étape 1 (builder) : La cuisine où on prépare et installe les outils.
 #  - Étape 2 (finale)   : La salle à manger où on ne garde que le plat prêt.
 #  Avantage : L'image finale est très légère (60 Mo au lieu de 800 Mo) !
-# ============================================================
 
 # ARGUMENT : Permet de choisir la version de Python (3.11 par défaut, ou 3.12 pour le test parallèle)
 ARG PYTHON_VERSION=3.11
 
 
-# ============================================================
 #  ÉTAPE 1 : LE BUILDER (La boîte à outils temporaire)
-# ============================================================
 FROM python:${PYTHON_VERSION}-slim AS builder
 
 # Dossier de travail temporaire
@@ -36,9 +32,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --retries 10 --timeout 180 -r requirements.txt
 
 
-# ============================================================
 #  ÉTAPE 2 : L'IMAGE FINALE (Propre et légère pour la production)
-# ============================================================
 FROM python:${PYTHON_VERSION}-slim
 
 # Optimisations simples de Python :
