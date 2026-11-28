@@ -181,8 +181,8 @@ pipeline {
                                 set "DOCKER_CMD=%DOCKER_BIN%"
                                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
-                                REM Lancer le test smoke a l'interieur du conteneur
-                                "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
+                                REM Lancer le test smoke a l'interieur du conteneur (ERREUR VOLONTAIRE SUR PORT 9999)
+                                "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:9999/ > artifacts\\smoke-test.txt 2>&1
                                 type artifacts\\smoke-test.txt
                             '''
                         }
