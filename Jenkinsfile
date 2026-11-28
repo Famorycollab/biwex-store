@@ -210,7 +210,7 @@ pipeline {
                                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
 
                                 REM Executer notre script Python smoke_test.py A L INTERIEUR du conteneur Docker
-                                "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:5000/ > artifacts\\smoke-test.txt 2>&1
+                                "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:9999/ > artifacts\\smoke-test.txt 2>&1
                                 REM Afficher le resultat a l ecran
                                 type artifacts\\smoke-test.txt
                             '''

@@ -3,7 +3,6 @@
 #  Branche : feature/abdoul-traore
 #  Audience : 3LIG - Introduction au DevOps (ISG Sousse)
 #
-#  NOTION DU COURS À EXPLIQUER À LA PROFESSEURE :
 #  Docker Compose permet de gérer une architecture multi-conteneurs
 #  (micro-services). Au lieu de taper plusieurs commandes "docker run",
 #  une seule commande suffit :
