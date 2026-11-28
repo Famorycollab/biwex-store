@@ -216,7 +216,7 @@ pipeline {
                         // Reessayer jusqu'a 15 fois avec 2 secondes d'attente entre chaque essai
                         retry(15) {
                             sleep(time: 2, unit: 'SECONDS')
-                            bat '''
+                            sh '''
                                 @echo off
                                 set "DOCKER_CMD=%DOCKER_BIN%"
                                 if not exist "%DOCKER_CMD%" set "DOCKER_CMD=docker"
