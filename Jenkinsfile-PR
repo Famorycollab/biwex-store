@@ -183,7 +183,9 @@ pipeline {
 
                                 REM Lancer le test smoke a l'interieur du conteneur (ERREUR VOLONTAIRE SUR PORT 9999)
                                 "%DOCKER_CMD%" exec %CONTAINER_NAME% python /app/scripts/smoke_test.py http://127.0.0.1:9999/ > artifacts\\smoke-test.txt 2>&1
+                                set "SMOKE_CODE=%ERRORLEVEL%"
                                 type artifacts\\smoke-test.txt
+                                exit /b %SMOKE_CODE%
                             '''
                         }
 
